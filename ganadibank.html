@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>가나디뱅크</title>
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="가나디뱅크">
+<meta name="theme-color" content="#0a0f1e">
+<link rel="manifest" href="./manifest-bank.json">
+<link rel="apple-touch-icon" href="./icon-bank-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#0a0f1e;--bg2:#111827;--bg3:#1c2640;--bg4:#232d47;--card:#151e33;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --text:#f0f4ff;--text2:#8a9bbf;--text3:#4a5878;
+  --accent:#4f80ff;--accent2:#7c9fff;
+  --green:#22d4a0;--green-bg:rgba(34,212,160,0.1);
+  --red:#ff5e7a;--red-bg:rgba(255,94,122,0.1);
+  --orange:#ff9a3c;--orange-bg:rgba(255,154,60,0.1);
+  --gold:#f5c842;--purple:#a78bfa;--purple-bg:rgba(167,139,250,0.1);
+  --radius:14px;--radius-lg:20px;--shadow:0 8px 32px rgba(0,0,0,0.4);
+  --font:'Pretendard',-apple-system,sans-serif;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);}
+body{overflow-x:hidden;}::-webkit-scrollbar{width:0;}
+
+/* splash */
+#splash{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;}
+#splash.fade-out{animation:splashOut 0.5s ease forwards;}
+@keyframes splashOut{to{opacity:0;pointer-events:none;}}
+.splash-logo{width:80px;height:80px;border-radius:24px;background:linear-gradient(135deg,#2a3f8a,#4f80ff);display:flex;align-items:center;justify-content:center;font-size:36px;box-shadow:0 0 40px rgba(79,128,255,0.4);animation:logoFloat 2s ease infinite alternate;}
+@keyframes logoFloat{from{transform:translateY(0);}to{transform:translateY(-6px);}}
+.splash-name{font-size:26px;font-weight:800;}.splash-name span{color:var(--accent);}
+.splash-dots{display:flex;gap:6px;}
+.splash-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);opacity:0.3;animation:dotPulse 1.2s ease infinite;}
+.splash-dot:nth-child(2){animation-delay:.2s;}.splash-dot:nth-child(3){animation-delay:.4s;}
+@keyframes dotPulse{0%,100%{opacity:.3;transform:scale(1);}50%{opacity:1;transform:scale(1.3);}}
+
+/* layout */
+.app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;}
+.header{padding:20px 20px 0;display:flex;align-items:center;justify-content:space-between;}
+.header-logo{display:flex;align-items:center;gap:10px;}
+.header-logo-icon{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#2a3f8a,#4f80ff);display:flex;align-items:center;justify-content:center;font-size:18px;}
+.header-logo-text{font-size:18px;font-weight:800;}.header-logo-text span{color:var(--accent);}
+.header-right{display:flex;align-items:center;gap:10px;}
+.badge-bank{font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;background:rgba(79,128,255,0.15);color:var(--accent2);border:1px solid rgba(79,128,255,0.3);}
+.logout-btn-top{background:none;border:1px solid var(--border2);border-radius:8px;padding:6px 12px;font-size:12px;color:var(--text2);cursor:pointer;font-family:var(--font);}
+#main-content{flex:1;overflow-y:auto;padding-bottom:100px;}
+
+/* login */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+.login-card{width:100%;max-width:400px;background:var(--card);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:32px 28px;box-shadow:var(--shadow);}
+.login-bank-logo{width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#1a2f6e,#4f80ff);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 20px;box-shadow:0 0 24px rgba(79,128,255,0.3);}
+.login-title{font-size:22px;font-weight:800;text-align:center;margin-bottom:6px;}
+.login-subtitle{font-size:13px;color:var(--text2);text-align:center;margin-bottom:28px;}
+.login-label{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px;display:block;}
+.login-select{width:100%;padding:14px 16px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);font-size:15px;font-family:var(--font);margin-bottom:16px;outline:none;}
+.login-select:focus{border-color:var(--accent);}
+.login-btn{width:100%;padding:16px;background:linear-gradient(135deg,#3a6aff,#4f80ff);border:none;border-radius:var(--radius);color:white;font-size:15px;font-weight:700;cursor:pointer;font-family:var(--font);box-shadow:0 4px 20px rgba(79,128,255,0.35);}
+
+/* account card */
+.account-section{padding:20px 20px 0;}
+.account-card{background:linear-gradient(135deg,#1a2f6e 0%,#2a4fa8 50%,#1e3a8a 100%);border-radius:var(--radius-lg);padding:24px;position:relative;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.4);}
+.account-card::before{content:'';position:absolute;top:-40px;right:-40px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,0.04);}
+.account-card::after{content:'';position:absolute;bottom:-60px;left:-30px;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,0.03);}
+.acc-type{font-size:12px;font-weight:600;color:rgba(255,255,255,0.6);letter-spacing:1px;margin-bottom:6px;}
+.acc-name{font-size:18px;font-weight:700;color:white;margin-bottom:20px;}
+.acc-balance-label{font-size:12px;color:rgba(255,255,255,0.55);margin-bottom:6px;}
+.acc-balance{font-size:34px;font-weight:900;color:white;letter-spacing:-1px;line-height:1;position:relative;z-index:1;}
+.acc-balance span{font-size:16px;font-weight:600;opacity:.7;margin-left:4px;}
+.acc-badge{display:inline-flex;align-items:center;gap:5px;margin-top:10px;padding:8px 14px;border-radius:10px;font-size:12px;font-weight:600;position:relative;z-index:1;}
+.acc-badge.green{background:rgba(34,212,160,0.15);border:1px solid rgba(34,212,160,0.3);color:var(--green);}
+.acc-badge.red{background:rgba(255,94,122,0.12);border:1px solid rgba(255,94,122,0.3);color:var(--red);}
+
+/* quick menu */
+.quick-menu{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:16px 20px;}
+.quick-btn{display:flex;flex-direction:column;align-items:center;gap:7px;padding:14px 6px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:all 0.2s;font-family:var(--font);}
+.quick-btn:hover{border-color:var(--accent);background:var(--bg3);transform:translateY(-2px);}
+.quick-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;}
+.quick-icon.blue{background:rgba(79,128,255,0.15);}
+.quick-icon.green{background:rgba(34,212,160,0.12);}
+.quick-icon.gold{background:rgba(245,200,66,0.12);}
+.quick-icon.red{background:rgba(255,94,122,0.12);}
+.quick-label{font-size:12px;font-weight:600;color:var(--text);}
+
+/* bottom nav */
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--card);border-top:1px solid var(--border2);display:flex;padding:0 6px;padding-bottom:env(safe-area-inset-bottom,0);z-index:100;}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 4px;background:none;border:none;cursor:pointer;font-family:var(--font);gap:4px;}
+.nav-icon{font-size:20px;line-height:1;}
+.nav-label{font-size:10px;font-weight:600;color:var(--text3);}
+.nav-btn.active .nav-label{color:var(--accent);}
+.nav-btn.active .nav-icon{filter:drop-shadow(0 0 4px rgba(79,128,255,0.6));}
+
+/* page */
+.page-wrap{padding:20px;display:flex;flex-direction:column;gap:16px;}
+.page-title{font-size:22px;font-weight:800;}
+.page-sub{font-size:14px;color:var(--text2);margin-top:4px;}
+.form-label{font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.3px;margin-bottom:8px;display:block;}
+.form-card{background:var(--card);border:1px solid var(--border2);border-radius:var(--radius);overflow:hidden;}
+.form-section{background:var(--card);border:1px solid var(--border2);border-radius:var(--radius);padding:18px;}
+
+/* tx */
+.tx-list{padding:0 20px;display:flex;flex-direction:column;gap:8px;}
+.tx-item{display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);}
+.tx-icon{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.tx-icon.send{background:var(--red-bg);}.tx-icon.recv{background:var(--green-bg);}
+.tx-icon.interest{background:var(--green-bg);}.tx-icon.loan-out{background:var(--purple-bg);}
+.tx-icon.loan-pay{background:var(--orange-bg);}
+.tx-info{flex:1;}.tx-name{font-size:14px;font-weight:600;}.tx-date{font-size:12px;color:var(--text3);margin-top:2px;}
+.tx-amount{font-size:15px;font-weight:700;}
+.tx-amount.send{color:var(--red);}.tx-amount.recv{color:var(--green);}
+.tx-amount.interest{color:var(--green);}.tx-amount.loan-out{color:var(--purple);}
+.tx-amount.loan-pay{color:var(--orange);}
+.empty-tx{text-align:center;padding:32px;color:var(--text3);font-size:14px;}
+
+/* section head */
+.section-head{display:flex;align-items:center;justify-content:space-between;padding:0 20px;margin-bottom:12px;}
+.section-title2{font-size:15px;font-weight:700;}
+
+/* interest card */
+.interest-card{background:linear-gradient(135deg,#0d2e1f,#0d3d2a);border:1px solid rgba(34,212,160,.25);border-radius:var(--radius-lg);padding:22px;position:relative;overflow:hidden;}
+.interest-card::before{content:'';position:absolute;top:-30px;right:-30px;width:140px;height:140px;border-radius:50%;background:rgba(34,212,160,0.06);}
+.interest-rate-big{font-size:40px;font-weight:900;color:var(--green);letter-spacing:-1px;}
+.interest-rate-big span{font-size:18px;font-weight:600;opacity:.7;}
+.irow{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-size:14px;}
+.irow:last-child{border-bottom:none;}
+.irow-label{color:var(--text2);}.irow-value{font-weight:700;}
+.next-bar-wrap{margin-top:14px;background:rgba(255,255,255,0.06);border-radius:6px;height:6px;overflow:hidden;}
+.next-bar-fill{height:100%;background:linear-gradient(90deg,#22d4a0,#4f80ff);border-radius:6px;transition:width .5s ease;}
+
+/* loan */
+.loan-card{background:linear-gradient(135deg,#2a0f1e,#3d1a2a);border:1px solid rgba(255,94,122,.25);border-radius:var(--radius-lg);padding:22px;position:relative;overflow:hidden;}
+.loan-card::before{content:'';position:absolute;top:-30px;right:-30px;width:140px;height:140px;border-radius:50%;background:rgba(255,94,122,0.05);}
+.loan-big{font-size:34px;font-weight:900;color:var(--red);letter-spacing:-1px;}
+.loan-big span{font-size:16px;font-weight:600;opacity:.7;}
+
+/* rate steps */
+.rate-steps{display:flex;flex-direction:column;gap:8px;}
+.rate-step{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;background:var(--bg3);border:1px solid var(--border);}
+.rate-step.active{border-color:rgba(79,128,255,.4);background:rgba(79,128,255,0.06);}
+.rate-bar{width:5px;height:36px;border-radius:3px;flex-shrink:0;}
+.rate-info{flex:1;}.rate-range{font-size:12px;color:var(--text2);}.rate-val{font-size:16px;font-weight:800;margin-top:2px;}
+.rate-tag{font-size:11px;padding:3px 8px;border-radius:6px;font-weight:700;}
+
+/* repay options */
+.repay-options{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.repay-option{padding:16px;border:2px solid var(--border2);border-radius:var(--radius);cursor:pointer;transition:all .15s;background:var(--bg3);}
+.repay-option:hover{border-color:rgba(79,128,255,.4);}
+.repay-option.selected{border-color:var(--accent);background:rgba(79,128,255,0.08);}
+.repay-icon{font-size:24px;margin-bottom:8px;}
+.repay-name{font-size:13px;font-weight:700;margin-bottom:4px;}
+.repay-desc{font-size:11px;color:var(--text3);line-height:1.5;}
+
+/* schedule */
+.schedule-table{width:100%;border-collapse:collapse;font-size:13px;}
+.schedule-table th{padding:10px 8px;text-align:left;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border2);font-size:11px;letter-spacing:.3px;}
+.schedule-table td{padding:10px 8px;border-bottom:1px solid var(--border);font-weight:500;}
+.schedule-table tr:last-child td{border-bottom:none;}
+.schedule-table .final-row td{color:var(--orange);font-weight:700;}
+
+/* sub tabs */
+.sub-tabs{display:flex;gap:8px;padding:0 20px;margin-bottom:16px;}
+.sub-tab{flex:1;padding:10px;border:1px solid var(--border2);border-radius:12px;background:transparent;color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);text-align:center;transition:all .15s;}
+.sub-tab.active{background:var(--accent);border-color:var(--accent);color:white;box-shadow:0 2px 12px rgba(79,128,255,.35);}
+
+/* info boxes */
+.info-box{padding:14px 16px;border-radius:12px;font-size:13px;line-height:1.7;display:flex;gap:10px;}
+.info-box.blue{background:rgba(79,128,255,0.08);border:1px solid rgba(79,128,255,.2);color:var(--accent2);}
+.info-box.green{background:rgba(34,212,160,0.07);border:1px solid rgba(34,212,160,.2);color:#22d4a0;}
+.info-box.red{background:rgba(255,94,122,0.08);border:1px solid rgba(255,94,122,.2);color:var(--red);}
+.info-box.orange{background:rgba(255,154,60,0.08);border:1px solid rgba(255,154,60,.2);color:var(--orange);}
+
+/* input */
+.amount-input-wrap{background:var(--card);border:1px solid var(--border2);border-radius:var(--radius);padding:20px;}
+.amount-input{width:100%;background:none;border:none;font-size:36px;font-weight:900;color:var(--text);font-family:var(--font);outline:none;letter-spacing:-1px;}
+.amount-input::placeholder{color:var(--text3);}
+.amount-unit{font-size:16px;font-weight:600;color:var(--text2);}
+.amount-avail{font-size:13px;color:var(--text3);margin-top:6px;}
+.amount-avail strong{color:var(--green);}
+.quick-amounts{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+.qa-btn{padding:7px 14px;border-radius:20px;background:var(--bg3);border:1px solid var(--border2);font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;font-family:var(--font);}
+.qa-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+/* recipient */
+.recipient-item{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s;}
+.recipient-item:last-child{border-bottom:none;}
+.recipient-item:hover{background:var(--bg3);}
+.recipient-item.selected{background:rgba(79,128,255,0.08);border-left:3px solid var(--accent);}
+.recv-avatar{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:white;flex-shrink:0;}
+.recv-info{flex:1;}.recv-name{font-size:14px;font-weight:600;}.recv-group{font-size:12px;color:var(--text3);}
+.recv-balance{font-size:13px;font-weight:600;color:var(--text2);}
+.search-wrap{padding:12px 16px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);display:flex;align-items:center;gap:10px;}
+.search-wrap input{flex:1;background:none;border:none;outline:none;font-size:14px;color:var(--text);font-family:var(--font);}
+.search-wrap input::placeholder{color:var(--text3);}
+
+/* buttons */
+.primary-btn{width:100%;padding:18px;background:linear-gradient(135deg,#3a6aff,#4f80ff);border:none;border-radius:var(--radius);color:white;font-size:16px;font-weight:700;cursor:pointer;font-family:var(--font);box-shadow:0 4px 20px rgba(79,128,255,.35);}
+.primary-btn:disabled{opacity:.35;cursor:not-allowed;}
+.danger-btn{width:100%;padding:16px;background:linear-gradient(135deg,#c0334a,#ff5e7a);border:none;border-radius:var(--radius);color:white;font-size:15px;font-weight:700;cursor:pointer;font-family:var(--font);box-shadow:0 4px 20px rgba(255,94,122,.3);}
+.danger-btn:disabled{opacity:.35;cursor:not-allowed;}
+
+/* weeks slider */
+.weeks-slider{width:100%;accent-color:var(--accent);}
+.weeks-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-top:6px;}
+
+/* rank */
+.rank-list{padding:0 20px;display:flex;flex-direction:column;gap:8px;}
+.rank-item{display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);}
+.rank-item.me{border-color:rgba(79,128,255,.4);background:rgba(79,128,255,0.06);}
+.rank-num{font-size:16px;font-weight:800;width:28px;text-align:center;}
+.rank-num.gold{color:#f5c842;}.rank-num.silver{color:#b0bec5;}.rank-num.bronze{color:#cd7f32;}.rank-num.other{color:var(--text3);}
+.rank-av{width:40px;height:40px;border-radius:12px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;}
+.rank-info{flex:1;}.rank-name{font-size:14px;font-weight:700;}.rank-group{font-size:11px;color:var(--text3);}
+.rank-deposit{font-size:15px;font-weight:700;}
+.rank-tag{font-size:10px;padding:3px 8px;border-radius:6px;background:rgba(79,128,255,.15);color:var(--accent2);font-weight:700;}
+
+/* modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:500;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .25s;}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal-panel{width:100%;background:var(--bg2);border-radius:24px 24px 0 0;border-top:1px solid var(--border2);padding:28px 24px 40px;transform:translateY(100%);transition:transform .3s ease;max-height:90vh;overflow-y:auto;}
+.modal-overlay.open .modal-panel{transform:translateY(0);}
+.modal-handle{width:40px;height:4px;border-radius:2px;background:var(--border2);margin:0 auto 24px;}
+.modal-title{font-size:18px;font-weight:800;margin-bottom:6px;}
+.modal-sub{font-size:13px;color:var(--text2);margin-bottom:20px;}
+.mrow{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--border);font-size:14px;}
+.mrow:last-of-type{border-bottom:none;}.mrow-label{color:var(--text2);}.mrow-value{font-weight:700;}
+.mrow-value.accent{color:var(--accent);font-size:20px;}.mrow-value.red{color:var(--red);}
+.mrow-value.green{color:var(--green);}
+.modal-btns{display:flex;gap:12px;margin-top:24px;}
+.mbtn-cancel{flex:1;padding:16px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text2);font-size:15px;font-weight:700;cursor:pointer;font-family:var(--font);}
+.mbtn-confirm{flex:2;padding:16px;background:linear-gradient(135deg,#3a6aff,#4f80ff);border:none;border-radius:var(--radius);color:white;font-size:15px;font-weight:700;cursor:pointer;font-family:var(--font);}
+.mbtn-danger{flex:2;padding:16px;background:linear-gradient(135deg,#c0334a,#ff5e7a);border:none;border-radius:var(--radius);color:white;font-size:15px;font-weight:700;cursor:pointer;font-family:var(--font);}
+
+/* toast */
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--bg3);border:1px solid var(--border2);border-radius:12px;padding:12px 20px;font-size:14px;font-weight:600;color:var(--text);z-index:9999;transition:transform .3s ease;box-shadow:var(--shadow);white-space:nowrap;max-width:90%;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+.toast.success{border-color:var(--green);color:var(--green);}
+.toast.error{border-color:var(--red);color:var(--red);}
+.toast.info{border-color:var(--accent);color:var(--accent2);}
+.loading-state{display:flex;flex-direction:column;align-items:center;padding:60px 20px;gap:14px;color:var(--text3);}
+.spinner{width:32px;height:32px;border-radius:50%;border:3px solid var(--border2);border-top-color:var(--accent);animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.home-section{margin-bottom:24px;}
+</style>
+</head>
+<body>
+<div id="splash">
+  <div class="splash-logo">🏦</div>
+  <div class="splash-name">가나디<span>뱅크</span></div>
+  <div class="splash-dots"><div class="splash-dot"></div><div class="splash-dot"></div><div class="splash-dot"></div></div>
+</div>
+
+<div class="app" id="app" style="display:none;">
+  <div class="header" id="app-header" style="display:none;">
+    <div class="header-logo">
+      <div class="header-logo-icon">🏦</div>
+      <div class="header-logo-text">가나디<span>뱅크</span></div>
+    </div>
+    <div class="header-right">
+      <div class="badge-bank">BANK</div>
+      <button class="logout-btn-top" onclick="doLogout()">로그아웃</button>
+    </div>
+  </div>
+  <div id="main-content"></div>
+  <nav class="bottom-nav" id="bottom-nav" style="display:none;">
+    <button class="nav-btn active" data-tab="home"     onclick="switchTab('home')"><span class="nav-icon">🏠</span><span class="nav-label">홈</span></button>
+    <button class="nav-btn"        data-tab="transfer" onclick="switchTab('transfer')"><span class="nav-icon">💸</span><span class="nav-label">송금</span></button>
+    <button class="nav-btn"        data-tab="interest" onclick="switchTab('interest')"><span class="nav-icon">💰</span><span class="nav-label">이자</span></button>
+    <button class="nav-btn"        data-tab="loan"     onclick="switchTab('loan')"><span class="nav-icon">🏛️</span><span class="nav-label">대출</span></button>
+    <button class="nav-btn"        data-tab="ranking"  onclick="switchTab('ranking')"><span class="nav-icon">🏆</span><span class="nav-label">순위</span></button>
+  </nav>
+</div>
+
+<div class="modal-overlay" id="main-modal">
+  <div class="modal-panel" id="modal-inner"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, onValue, runTransaction, update, get }
+                            from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const FB = {
+  apiKey:"AIzaSyDEGBu8sFChEdtnQEEC1FFZaAIwUr9fWpc",
+  authDomain:"stock-c985f.firebaseapp.com",
+  databaseURL:"https://stock-c985f-default-rtdb.firebaseio.com",
+  projectId:"stock-c985f",
+  storageBucket:"stock-c985f.firebasestorage.app",
+  messagingSenderId:"1082843629086",
+  appId:"1:1082843629086:web:58c6b2ca396cb7842d100f"
+};
+const db = getDatabase(initializeApp(FB));
+
+// ── 상수 ─────────────────────────────────────────────────
+const GROUPS = [
+  {id:1,name:'1모둠',members:['주시연','김지성','신재은','서은수']},
+  {id:2,name:'2모둠',members:['강민채','권용민','이다영','김준우']},
+  {id:3,name:'3모둠',members:['박준서','조혜원','김주이','윤지환']},
+  {id:4,name:'4모둠',members:['최효민','정서윤','이세은','이강민']},
+  {id:5,name:'5모둠',members:['김지원','임승언','이서준','김수현','이윤아']},
+  {id:6,name:'6모둠',members:['이주호','민나진','최상윤','황세현','이수빈']},
+];
+const ALL_STUDENTS = GROUPS.flatMap(g=>g.members.map(m=>({name:m,group:g.id})));
+const GN = Object.fromEntries(GROUPS.map(g=>[g.id,g.name]));
+const GC = ['#4f80ff','#22d4a0','#f5a742','#bc8cff','#ff7b72','#4ecdc4'];
+const WEEK_MS = 7*24*60*60*1000;
+const DEP_RATE = 0.04; // 예금 주 4%
+
+// ── 대출 이자율 ─────────────────────────────────────────
+// ratio = 대출액 / 총자산  weeks = 1~4
+function loanRate(ratio, weeks) {
+  const base = ratio < .20 ? 5 : ratio < .40 ? 6 : 7;
+  return +(base + (weeks-1)*0.5).toFixed(1);
+}
+
+// ── 상환 일정 ────────────────────────────────────────────
+function calcSchedule(principal, ratePerWeek, weeks, type) {
+  const r = ratePerWeek/100;
+  const rows = [];
+  if (type === 'equal') {
+    // 원리금균등
+    const pmt = Math.ceil(principal * r * Math.pow(1+r,weeks) / (Math.pow(1+r,weeks)-1));
+    let bal = principal;
+    for (let w=1; w<=weeks; w++) {
+      const interest = Math.round(bal*r);
+      const prin = Math.min(pmt - interest, bal);
+      bal = Math.max(0, bal - prin);
+      rows.push({week:w, interest, principal:prin, total:interest+prin, balance:bal, isFinal:w===weeks});
+    }
+  } else {
+    // 만기일시
+    const weeklyInt = Math.round(principal*r);
+    for (let w=1; w<=weeks; w++) {
+      const isFinal = w===weeks;
+      rows.push({week:w, interest:weeklyInt, principal:isFinal?principal:0, total:weeklyInt+(isFinal?principal:0), balance:isFinal?0:principal, isFinal});
+    }
+  }
+  return rows;
+}
+
+// ── 앱 상태 ──────────────────────────────────────────────
+let fbState=null, currentUser=null, activeTab='home';
+let transferTarget=null, transferAmount=0, searchQuery='';
+let loanAmt=0, loanWeeks=1, loanType='equal', loanSubTab='apply';
+
+// ── Firebase ─────────────────────────────────────────────
+onValue(ref(db,'state'), snap=>{
+  fbState=snap.val()||{};
+  if(currentUser){ checkInterest(); checkLoanDue(); renderCurrentTab(); }
+});
+
+// ── 유틸 ─────────────────────────────────────────────────
+const fmt  = n => (n==null?0:Math.floor(n)).toLocaleString('ko-KR');
+const fmtF = n => n==null?'0':(Math.floor(n*10)/10).toLocaleString('ko-KR');
+const dep  = name => fbState?.students?.[name]?.deposit??0;
+const grp  = name => ALL_STUDENTS.find(s=>s.name===name)?.group??0;
+const gname= name => {const g=grp(name);return g?GN[g]:'';}
+const gcol = name => {const g=grp(name);return g?GC[g-1]:'#4f80ff';}
+const init = name => name?.[0]??'?';
+const loan = name => fbState?.bankLoans?.[name]??null;
+function totalAsset(name){
+  const stu=fbState?.students?.[name];
+  if(!stu)return 0;
+  let sv=0;
+  for(const[t,q]of Object.entries(stu.holdings??{})){if(q)sv+=q*(fbState?.prices?.[t]??0);}
+  return (stu.deposit??0)+sv;
+}
+function fmtDate(ts){
+  const d=new Date(ts);
+  return `${d.getMonth()+1}/${d.getDate()} ${d.getHours()<12?'오전':'오후'} ${d.getHours()%12||12}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+function fmtDateFull(ts){
+  const d=new Date(ts);
+  return `${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()} ${d.getHours()<12?'오전':'오후'} ${d.getHours()%12||12}시`;
+}
+
+// ── 예금 이자 자동 지급 ───────────────────────────────────
+async function checkInterest(){
+  if(!currentUser||!fbState)return;
+  const now=Date.now();
+  const iData=fbState?.bankInterest?.[currentUser];
+  // lastApplied가 없으면 지금 시각으로 초기화 (첫 로그인 시 이자 폭발 방지)
+  if(!iData?.lastApplied){
+    await update(ref(db,`state/bankInterest/${currentUser}`),{lastApplied:now,totalEarned:0});
+    return;
+  }
+  const last=iData.lastApplied;
+  // 최대 4주(1달)까지만 소급 적용
+  const passed=Math.min(Math.floor((now-last)/WEEK_MS), 4);
+  if(passed<1)return;
+  const d=dep(currentUser);
+  if(d<=0)return;
+  const earned=Math.round(d*(Math.pow(1+DEP_RATE,passed)-1)*100)/100;
+  if(earned<0.5)return;
+  try{
+    await runTransaction(ref(db,`state/students/${currentUser}`),cur=>{
+      if(!cur)return cur;
+      cur.deposit=Math.round(((cur.deposit??0)+earned)*100)/100;
+      return cur;
+    });
+    const newLast=last+passed*WEEK_MS;
+    await update(ref(db,`state/bankInterest/${currentUser}`),{
+      lastApplied:newLast,
+      totalEarned:(iData.totalEarned??0)+earned
+    });
+    const hist=[...(fbState?.bankHistory?.[currentUser]??[]),
+      {type:'interest',amount:Math.round(earned),weeks:passed,ts:now}];
+    await runTransaction(ref(db,`state/bankHistory/${currentUser}`),()=>hist);
+    showToast(`💰 예금 이자 +${fmt(earned)}점 지급!`,'success');
+  }catch(e){}
+}
+
+// ── 대출 만기 알림 ────────────────────────────────────────
+function checkLoanDue(){
+  if(!currentUser)return;
+  const L=loan(currentUser);
+  if(!L||L.remaining<=0)return;
+  const now=Date.now();
+  const dueAt=L.startedAt+L.totalWeeks*WEEK_MS;
+  if(now>=dueAt&&L.paidWeeks<L.totalWeeks){
+    showToast('⚠️ 대출 만기가 지났어요! 빨리 상환해주세요','error');
+  }
+}
+
+// ── 스플래시 → 로그인 ─────────────────────────────────────
+setTimeout(()=>{
+  document.getElementById('splash').classList.add('fade-out');
+  setTimeout(()=>{
+    document.getElementById('splash').style.display='none';
+    document.getElementById('app').style.display='flex';
+    renderLogin();
+  },500);
+},2000);
+
+function renderLogin(){
+  document.getElementById('app-header').style.display='none';
+  document.getElementById('bottom-nav').style.display='none';
+  const opts=ALL_STUDENTS.map(s=>`<option value="${s.name}">${s.name} (${GN[s.group]})</option>`).join('');
+  document.getElementById('main-content').innerHTML=`
+    <div class="login-wrap"><div class="login-card">
+      <div class="login-bank-logo">🏦</div>
+      <div class="login-title">가나디뱅크</div>
+      <div class="login-subtitle">예금·송금·이자·대출 서비스</div>
+      <label class="login-label">계좌 선택</label>
+      <select class="login-select" id="ls"><option value="">이름을 선택하세요</option>${opts}</select>
+      <button class="login-btn" id="lb">🏦 입장하기</button>
+    </div></div>`;
+  document.getElementById('lb').onclick=()=>{
+    const name=document.getElementById('ls').value;
+    if(!name)return showToast('이름을 선택해주세요','error');
+    currentUser=name;
+    document.getElementById('app-header').style.display='flex';
+    document.getElementById('bottom-nav').style.display='flex';
+    switchTab('home');
+  };
+}
+
+window.doLogout=()=>{
+  if(!confirm('로그아웃하시겠습니까?'))return;
+  currentUser=null;activeTab='home';
+  transferTarget=null;transferAmount=0;
+  document.getElementById('app-header').style.display='none';
+  document.getElementById('bottom-nav').style.display='none';
+  renderLogin();
+};
+
+window.switchTab=function(tab){
+  activeTab=tab;
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+  renderCurrentTab();
+};
+
+function renderCurrentTab(){
+  if(!currentUser)return;
+  if(!fbState){document.getElementById('main-content').innerHTML=`<div class="loading-state"><div class="spinner"></div>로딩 중...</div>`;return;}
+  const map={home:renderHome,transfer:renderTransfer,interest:renderInterest,loan:renderLoan,ranking:renderRanking};
+  map[activeTab]?.();
+}
+
+// ════════════════════════════════════
+// 🏠 홈
+// ════════════════════════════════════
+function renderHome(){
+  const d=dep(currentUser);
+  const L=loan(currentUser);
+  const hist=(fbState?.bankHistory?.[currentUser]??[]);
+  const sorted=[...hist].sort((a,b)=>b.ts-a.ts).slice(0,12);
+  const txHtml=sorted.length===0?`<div class="empty-tx">📭 아직 거래 내역이 없어요</div>`
+    :sorted.map(h=>{
+      if(h.type==='send')return txRow('send','↑',`${h.to}에게 송금`,h.ts,`-${fmt(h.amount)}점`);
+      if(h.type==='recv')return txRow('recv','↓',`${h.from}에게서 받음`,h.ts,`+${fmt(h.amount)}점`);
+      if(h.type==='interest')return txRow('interest','💰',`예금 이자 (+${h.weeks}주)`,h.ts,`+${fmt(h.amount)}점`);
+      if(h.type==='loan-receive')return txRow('loan-out','🏛',`대출 실행 (${h.weeks}주)`,h.ts,`+${fmt(h.amount)}점`);
+      if(h.type==='loan-payment')return txRow('loan-pay','📤',`대출 상환 ${h.weekNo}회차`,h.ts,`-${fmt(h.amount)}점`);
+      if(h.type==='loan-complete')return txRow('recv','✅','대출 완납 🎉',h.ts,'');
+      return '';
+    }).join('');
+  const rawLastHome=fbState?.bankInterest?.[currentUser]?.lastApplied;
+  const last=(rawLastHome && rawLastHome > Date.now()-WEEK_MS) ? rawLastHome : Date.now();
+  const msLeft=Math.max(0,last+WEEK_MS-Date.now());
+  const pct=Math.min(100,((WEEK_MS-msLeft)/WEEK_MS*100)).toFixed(0);
+  const dL=Math.floor(msLeft/86400000), hL=Math.floor((msLeft%86400000)/3600000);
+  const loanBadge=L&&L.remaining>0?`<div class="acc-badge red" style="margin-left:8px;">⚠️ 대출 잔액 ${fmt(L.remaining)}점</div>`:'';
+  document.getElementById('main-content').innerHTML=`
+    <div class="account-section">
+      <div class="account-card">
+        <div class="acc-type">GANADI BANK · 입출금 계좌</div>
+        <div class="acc-name">${currentUser} <span style="font-size:13px;opacity:.6;">(${gname(currentUser)})</span></div>
+        <div class="acc-balance-label">예금 잔액</div>
+        <div class="acc-balance">${fmt(d)}<span>점</span></div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;position:relative;z-index:1;">
+          <div class="acc-badge green">📈 주 4% 이자 · 다음 이자 ${dL>0?dL+'일 ':''}${hL}시간 후</div>
+          ${loanBadge}
+        </div>
+      </div>
+    </div>
+    <div class="quick-menu">
+      <button class="quick-btn" onclick="switchTab('transfer')"><div class="quick-icon blue">💸</div><div class="quick-label">송금</div></button>
+      <button class="quick-btn" onclick="switchTab('interest')"><div class="quick-icon green">💰</div><div class="quick-label">이자</div></button>
+      <button class="quick-btn" onclick="switchTab('loan')"><div class="quick-icon red">🏛️</div><div class="quick-label">대출</div></button>
+      <button class="quick-btn" onclick="switchTab('ranking')"><div class="quick-icon gold">🏆</div><div class="quick-label">순위</div></button>
+    </div>
+    <div class="home-section">
+      <div class="section-head"><div class="section-title2">최근 거래내역</div></div>
+      <div class="tx-list">${txHtml}</div>
+    </div>`;
+}
+function txRow(type,icon,label,ts,amt){
+  return `<div class="tx-item"><div class="tx-icon ${type}">${icon}</div><div class="tx-info"><div class="tx-name">${label}</div><div class="tx-date">${fmtDate(ts)}</div></div><div class="tx-amount ${type}">${amt}</div></div>`;
+}
+
+// ════════════════════════════════════
+// 💰 이자
+// ════════════════════════════════════
+function renderInterest(){
+  const d=dep(currentUser);
+  const iData=fbState?.bankInterest?.[currentUser]??{};
+  // lastApplied가 없거나 비정상적으로 오래된 값이면 현재시각 기준으로 표시 (버그 방지)
+  const rawLast=iData.lastApplied;
+  const last=(rawLast && rawLast > Date.now()-WEEK_MS) ? rawLast : Date.now();
+  const total=iData.totalEarned??0;
+  const msLeft=Math.max(0,last+WEEK_MS-Date.now());
+  const dL=Math.floor(msLeft/86400000),hL=Math.floor((msLeft%86400000)/3600000),mL=Math.floor((msLeft%3600000)/60000);
+  const pct=Math.min(100,((WEEK_MS-msLeft)/WEEK_MS*100)).toFixed(0);
+  const next=Math.round(d*DEP_RATE);
+  document.getElementById('main-content').innerHTML=`
+    <div class="page-wrap">
+      <div><div class="page-title">💰 예금 이자</div><div class="page-sub">매주 예금의 4%를 자동으로 드려요</div></div>
+      <div class="interest-card">
+        <div style="font-size:13px;color:rgba(34,212,160,.7);font-weight:600;letter-spacing:.5px;margin-bottom:8px;">주간 이자율</div>
+        <div class="interest-rate-big">4<span>%/주</span></div>
+        <div style="margin-top:16px;">
+          <div class="irow"><span class="irow-label">현재 예금</span><span class="irow-value">${fmt(d)}점</span></div>
+          <div class="irow"><span class="irow-label">다음 이자 예상</span><span class="irow-value" style="color:var(--green);">+${fmt(next)}점</span></div>
+          <div class="irow"><span class="irow-label">지금까지 받은 이자</span><span class="irow-value">${fmt(total)}점</span></div>
+          <div class="irow"><span class="irow-label">다음 이자까지</span><span class="irow-value">${dL>0?dL+'일 ':''}${hL}시간 ${mL}분</span></div>
+        </div>
+        <div style="margin-top:14px;">
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:rgba(34,212,160,.5);margin-bottom:6px;"><span>이자 진행률</span><span>${pct}%</span></div>
+          <div class="next-bar-wrap"><div class="next-bar-fill" style="width:${pct}%"></div></div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div style="font-size:14px;font-weight:700;margin-bottom:14px;">📊 복리 예상 계산기</div>
+        <div class="irow"><span class="irow-label">1주 후 (+4%)</span><span class="irow-value" style="color:var(--green);">${fmt(Math.round(d*1.04))}점</span></div>
+        <div class="irow"><span class="irow-label">2주 후 (+8.16%)</span><span class="irow-value" style="color:var(--green);">${fmt(Math.round(d*Math.pow(1.04,2)))}점</span></div>
+        <div class="irow"><span class="irow-label">4주 후 (+16.99%)</span><span class="irow-value" style="color:var(--green);">${fmt(Math.round(d*Math.pow(1.04,4)))}점</span></div>
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:11px;color:var(--text3);">* 복리로 계산, 현재 예금 기준</div>
+      </div>
+      <div class="info-box green"><span>💡</span><div>주식을 팔아 예금을 늘리면 이자도 더 많이 받아요! 이자는 매주 자동 지급돼요.</div></div>
+    </div>`;
+}
+
+// ════════════════════════════════════
+// 🏛 대출
+// ════════════════════════════════════
+function renderLoan(){
+  const L=loan(currentUser);
+  const hasLoan=L&&L.remaining>0;
+  document.getElementById('main-content').innerHTML=`
+    <div style="padding:20px 20px 12px;">
+      <div class="page-title">🏛️ 대출</div>
+      <div class="page-sub">총 자산의 절반까지 빌릴 수 있어요</div>
+    </div>
+    <div class="sub-tabs">
+      <button class="sub-tab ${loanSubTab==='apply'?'active':''}" onclick="setLoanSub('apply')">${hasLoan?'대출 현황':'대출 신청'}</button>
+      <button class="sub-tab ${loanSubTab==='status'?'active':''}" onclick="setLoanSub('status')">상환 일정</button>
+    </div>
+    <div id="loan-body"></div>`;
+  renderLoanBody();
+}
+window.setLoanSub=function(t){
+  loanSubTab=t;
+  document.querySelectorAll('.sub-tab').forEach((b,i)=>b.classList.toggle('active',(i===0&&t==='apply')||(i===1&&t==='status')));
+  renderLoanBody();
+};
+function renderLoanBody(){
+  const el=document.getElementById('loan-body');
+  if(!el)return;
+  const L=loan(currentUser);
+  const hasLoan=L&&L.remaining>0;
+  if(loanSubTab==='apply') el.innerHTML=hasLoan?renderLoanStatus(L):renderLoanApply();
+  else el.innerHTML=hasLoan?renderScheduleView(L):noLoanHtml();
+  attachLoanBtns();
+}
+function noLoanHtml(){return`<div class="page-wrap"><div class="empty-tx" style="padding:60px 0;">📋 현재 대출이 없어요<br><span style="font-size:12px;color:var(--text3);margin-top:8px;display:block;">대출 신청 탭에서 빌려보세요</span></div></div>`;}
+
+function renderLoanStatus(L){
+  const now=Date.now();
+  const dueAt=L.startedAt+L.totalWeeks*WEEK_MS;
+  const weeksLeft=Math.max(0,L.totalWeeks-Math.floor((now-L.startedAt)/WEEK_MS));
+  const nextAt=L.lastCharged+WEEK_MS;
+  const msNext=Math.max(0,nextAt-now);
+  const dN=Math.floor(msNext/86400000),hN=Math.floor((msNext%86400000)/3600000);
+  const sched=calcSchedule(L.principal,L.ratePercent,L.totalWeeks,L.repayType);
+  const row=sched[L.paidWeeks]??null;
+  const d=dep(currentUser);
+  return `<div class="page-wrap">
+    <div class="loan-card">
+      <div style="font-size:13px;color:rgba(255,94,122,.7);font-weight:600;letter-spacing:.5px;margin-bottom:8px;">대출 잔액</div>
+      <div class="loan-big">${fmt(L.remaining)}<span>점</span></div>
+      <div style="margin-top:16px;">
+        <div class="irow"><span class="irow-label">원금</span><span class="irow-value">${fmt(L.principal)}점</span></div>
+        <div class="irow"><span class="irow-label">이자율</span><span class="irow-value" style="color:var(--red);">${L.ratePercent}% / 주</span></div>
+        <div class="irow"><span class="irow-label">상환 방식</span><span class="irow-value">${L.repayType==='equal'?'원리금균등':'만기일시'}</span></div>
+        <div class="irow"><span class="irow-label">만기일</span><span class="irow-value">${fmtDateFull(dueAt)}</span></div>
+        <div class="irow"><span class="irow-label">남은 기간</span><span class="irow-value" style="color:${weeksLeft<=1?'var(--red)':'var(--text)'};">${weeksLeft}주 남음</span></div>
+      </div>
+    </div>
+    ${row?`
+    <div class="form-section">
+      <div style="font-size:14px;font-weight:700;margin-bottom:14px;">📅 다음 상환 (${L.paidWeeks+1}/${L.totalWeeks}회차)</div>
+      <div class="irow"><span class="irow-label">원금</span><span class="irow-value">${fmt(row.principal)}점</span></div>
+      <div class="irow"><span class="irow-label">이자</span><span class="irow-value" style="color:var(--red);">${fmt(row.interest)}점</span></div>
+      <div class="irow"><span class="irow-label">납부액</span><span class="irow-value" style="color:var(--orange);font-size:18px;font-weight:900;">${fmt(row.total)}점</span></div>
+      <div class="irow"><span class="irow-label">납부 기한</span><span class="irow-value">${dN}일 ${hN}시간 후</span></div>
+      <button class="danger-btn" id="btn-repay" style="margin-top:16px;" ${d<row.total?'disabled':''}>
+        ${d<row.total?`예금 부족 (${fmt(row.total-d)}점 더 필요)`:`${fmt(row.total)}점 지금 상환하기`}
+      </button>
+    </div>`:`<div class="info-box green"><span>✅</span><div>모든 상환이 완료됐어요!</div></div>`}
+    <div class="info-box red"><span>⚠️</span><div>만기일까지 상환하지 않으면 연체 처리될 수 있어요. 예금이 부족하면 주식을 팔아두세요!</div></div>
+  </div>`;
+}
+
+function renderLoanApply(){
+  const tot=totalAsset(currentUser);
+  const d=dep(currentUser);
+  const maxL=Math.floor(tot*0.5);
+  const ratio=tot>0?loanAmt/tot:0;
+  const rate=loanRate(ratio,loanWeeks);
+  const sched=loanAmt>0?calcSchedule(loanAmt,rate,loanWeeks,loanType):[];
+  const totalRepay=sched.reduce((s,r)=>s+r.total,0);
+  const totalInt=totalRepay-loanAmt;
+  const step=ratio<.2?0:ratio<.4?1:2;
+  const r1=loanRate(.1,loanWeeks),r2=loanRate(.3,loanWeeks),r3=loanRate(.45,loanWeeks);
+
+  return `<div class="page-wrap">
+    <div class="form-section">
+      <div style="font-size:14px;font-weight:700;margin-bottom:4px;">내 자산 현황</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:14px;">대출 한도 = 총 자산(예금+주식)의 50%</div>
+      <div class="irow"><span class="irow-label">총 자산 (예금+주식)</span><span class="irow-value">${fmt(tot)}점</span></div>
+      <div class="irow"><span class="irow-label">최대 대출 한도</span><span class="irow-value" style="color:var(--accent);">${fmt(maxL)}점</span></div>
+      <div class="irow"><span class="irow-label">현재 예금</span><span class="irow-value" style="color:var(--green);">${fmt(d)}점</span></div>
+    </div>
+
+    <div>
+      <label class="form-label">💰 대출 금액</label>
+      <div class="amount-input-wrap">
+        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px;">
+          <input class="amount-input" type="number" id="loan-inp" placeholder="0"
+            min="1" max="${maxL}" value="${loanAmt||''}" oninput="onLoanAmt(this.value)" />
+          <span class="amount-unit">점</span>
+        </div>
+        <div class="amount-avail">최대 <strong>${fmt(maxL)}점</strong>까지 가능</div>
+        <div class="quick-amounts">
+          ${[Math.floor(maxL*.25),Math.floor(maxL*.5),Math.floor(maxL*.75)].map(v=>`<button class="qa-btn" onclick="setLA(${v})">${fmt(v)}</button>`).join('')}
+          <button class="qa-btn" onclick="setLA(${maxL})">최대</button>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <label class="form-label">📅 대출 기간</label>
+      <div class="form-section">
+        <input type="range" class="weeks-slider" id="weeks-sl" min="1" max="4" step="1" value="${loanWeeks}" oninput="onLoanWeeks(this.value)">
+        <div class="weeks-labels"><span>1주</span><span>2주</span><span>3주</span><span>4주 (최대)</span></div>
+        <div style="text-align:center;margin-top:12px;font-size:24px;font-weight:900;color:var(--accent);">${loanWeeks}주</div>
+        <div style="text-align:center;font-size:12px;color:var(--text3);margin-top:2px;">기간이 길수록 이자율 +0.5%/주 추가</div>
+      </div>
+    </div>
+
+    <div>
+      <label class="form-label">📊 이자율 단계 (현재: <span style="color:var(--accent);">${loanAmt>0?rate+'% / 주':'미정'}</span>)</label>
+      <div class="rate-steps">
+        <div class="rate-step ${step===0?'active':''}">
+          <div class="rate-bar" style="background:var(--green);"></div>
+          <div class="rate-info"><div class="rate-range">대출액이 자산의 20% 미만</div><div class="rate-val" style="color:var(--green);">${r1}% / 주</div></div>
+          <span class="rate-tag" style="background:var(--green-bg);color:var(--green);">낮음</span>
+        </div>
+        <div class="rate-step ${step===1?'active':''}">
+          <div class="rate-bar" style="background:var(--orange);"></div>
+          <div class="rate-info"><div class="rate-range">대출액이 자산의 20~40%</div><div class="rate-val" style="color:var(--orange);">${r2}% / 주</div></div>
+          <span class="rate-tag" style="background:var(--orange-bg);color:var(--orange);">보통</span>
+        </div>
+        <div class="rate-step ${step===2?'active':''}">
+          <div class="rate-bar" style="background:var(--red);"></div>
+          <div class="rate-info"><div class="rate-range">대출액이 자산의 40~50%</div><div class="rate-val" style="color:var(--red);">${r3}% / 주</div></div>
+          <span class="rate-tag" style="background:var(--red-bg);color:var(--red);">높음</span>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <label class="form-label">💳 상환 방식</label>
+      <div class="repay-options">
+        <div class="repay-option ${loanType==='equal'?'selected':''}" onclick="setLT('equal')">
+          <div class="repay-icon">⚖️</div>
+          <div class="repay-name">원리금균등 상환</div>
+          <div class="repay-desc">이자와 대출 금액을 함께 갚는 방식이에요. 매주 같은 금액을 내요.</div>
+        </div>
+        <div class="repay-option ${loanType==='bullet'?'selected':''}" onclick="setLT('bullet')">
+          <div class="repay-icon">🎯</div>
+          <div class="repay-name">만기일시 상환</div>
+          <div class="repay-desc">이자만 매주 갚다가 마지막날 원금을 한꺼번에 갚는 방식이에요.</div>
+        </div>
+      </div>
+    </div>
+
+    ${loanAmt>0&&sched.length>0?`
+    <div>
+      <label class="form-label">📋 예상 상환 일정</label>
+      <div class="form-card" style="padding:16px;">
+        <table class="schedule-table">
+          <thead><tr><th>회차</th><th>원금</th><th>이자</th><th>납부액</th></tr></thead>
+          <tbody>
+            ${sched.map(r=>`<tr class="${r.isFinal?'final-row':''}"><td>${r.week}주차${r.isFinal?' 🏁':''}</td><td>${fmt(r.principal)}점</td><td style="color:var(--red);">${fmt(r.interest)}점</td><td style="font-weight:700;">${fmt(r.total)}점</td></tr>`).join('')}
+          </tbody>
+        </table>
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:13px;">
+          <span style="color:var(--text2);">총 이자</span><span style="color:var(--red);font-weight:700;">${fmt(totalInt)}점</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:14px;margin-top:8px;">
+          <span style="color:var(--text2);">총 상환액</span><span style="font-weight:800;">${fmt(totalRepay)}점</span>
+        </div>
+      </div>
+    </div>`:''}
+
+    <button class="primary-btn" id="btn-loan-apply" ${loanAmt<=0||loanAmt>maxL?'disabled':''}>
+      ${loanAmt>0?`${fmt(loanAmt)}점 대출 신청하기`:'금액을 입력하세요'}
+    </button>
+  </div>`;
+}
+
+function renderScheduleView(L){
+  if(!L||!L.remaining)return noLoanHtml();
+  const sched=calcSchedule(L.principal,L.ratePercent,L.totalWeeks,L.repayType);
+  return `<div class="page-wrap">
+    <div class="form-card" style="padding:16px;">
+      <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:var(--text2);">
+        ${L.repayType==='equal'?'⚖️ 원리금균등':'🎯 만기일시'} · ${L.ratePercent}%/주 · ${L.totalWeeks}주
+      </div>
+      <table class="schedule-table">
+        <thead><tr><th>회차</th><th>원금</th><th>이자</th><th>납부액</th><th>상태</th></tr></thead>
+        <tbody>
+          ${sched.map((r,i)=>{
+            const paid=i<L.paidWeeks,cur=i===L.paidWeeks;
+            return `<tr class="${r.isFinal?'final-row':''}">
+              <td>${r.week}주차</td><td>${fmt(r.principal)}점</td>
+              <td style="color:var(--red);">${fmt(r.interest)}점</td>
+              <td style="font-weight:700;">${fmt(r.total)}점</td>
+              <td>${paid?'<span style="color:var(--green);">✅</span>':cur?'<span style="color:var(--orange);">⏳</span>':'<span style="color:var(--text3);">-</span>'}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div class="info-box blue"><span>📌</span><div>상환은 자동으로 되지 않아요. 대출 현황 탭에서 직접 버튼을 눌러 상환해주세요.</div></div>
+  </div>`;
+}
+
+function attachLoanBtns(){
+  document.getElementById('btn-loan-apply')?.addEventListener('click',openLoanModal);
+  document.getElementById('btn-repay')?.addEventListener('click',openRepayModal);
+}
+
+window.onLoanAmt=function(v){
+  const max=Math.floor(totalAsset(currentUser)*0.5);
+  loanAmt=Math.min(Math.max(0,parseInt(v)||0),max);
+  renderLoanBody();
+  setTimeout(()=>{const i=document.getElementById('loan-inp');if(i){i.value=loanAmt||'';i.focus();i.setSelectionRange(999,999);}},10);
+};
+window.setLA=function(v){loanAmt=v;renderLoanBody();};
+window.onLoanWeeks=function(v){loanWeeks=parseInt(v);renderLoanBody();};
+window.setLT=function(t){loanType=t;renderLoanBody();};
+
+// ── 대출 신청 모달 ──
+function openLoanModal(){
+  const tot=totalAsset(currentUser);
+  const rate=loanRate(loanAmt/tot,loanWeeks);
+  const sched=calcSchedule(loanAmt,rate,loanWeeks,loanType);
+  const totalRepay=sched.reduce((s,r)=>s+r.total,0);
+  const first=sched[0].total;
+  showModal(`
+    <div class="modal-handle"></div>
+    <div class="modal-title">대출 신청 확인</div>
+    <div class="modal-sub">아래 내용을 꼭 확인해주세요</div>
+    <div class="mrow"><span class="mrow-label">대출 금액</span><span class="mrow-value accent">${fmt(loanAmt)}점</span></div>
+    <div class="mrow"><span class="mrow-label">이자율</span><span class="mrow-value red">${rate}% / 주</span></div>
+    <div class="mrow"><span class="mrow-label">기간</span><span class="mrow-value">${loanWeeks}주</span></div>
+    <div class="mrow"><span class="mrow-label">상환 방식</span><span class="mrow-value">${loanType==='equal'?'원리금균등':'만기일시'}</span></div>
+    <div class="mrow"><span class="mrow-label">첫 주 납부액</span><span class="mrow-value" style="color:var(--orange);">${fmt(first)}점</span></div>
+    <div class="mrow"><span class="mrow-label">총 상환액</span><span class="mrow-value">${fmt(totalRepay)}점</span></div>
+    <div class="modal-btns">
+      <button class="mbtn-cancel" onclick="closeModal()">취소</button>
+      <button class="mbtn-confirm" onclick="confirmLoan()">신청하기</button>
+    </div>`);
+}
+
+function openRepayModal(){
+  const L=loan(currentUser);if(!L)return;
+  const sched=calcSchedule(L.principal,L.ratePercent,L.totalWeeks,L.repayType);
+  const row=sched[L.paidWeeks];if(!row)return;
+  showModal(`
+    <div class="modal-handle"></div>
+    <div class="modal-title">대출 상환</div>
+    <div class="modal-sub">${L.paidWeeks+1}회차 / ${L.totalWeeks}회차</div>
+    <div class="mrow"><span class="mrow-label">원금 상환</span><span class="mrow-value">${fmt(row.principal)}점</span></div>
+    <div class="mrow"><span class="mrow-label">이자</span><span class="mrow-value red">${fmt(row.interest)}점</span></div>
+    <div class="mrow"><span class="mrow-label">납부액</span><span class="mrow-value accent">${fmt(row.total)}점</span></div>
+    <div class="mrow"><span class="mrow-label">상환 후 잔액</span><span class="mrow-value">${fmt(L.remaining-row.principal)}점</span></div>
+    <div class="modal-btns">
+      <button class="mbtn-cancel" onclick="closeModal()">취소</button>
+      <button class="mbtn-danger" onclick="confirmRepay()">상환하기</button>
+    </div>`);
+}
+
+window.confirmLoan=async function(){
+  closeModal();
+  const tot=totalAsset(currentUser);
+  const rate=loanRate(loanAmt/tot,loanWeeks);
+  const now=Date.now();
+  try{
+    await runTransaction(ref(db,`state/students/${currentUser}`),cur=>{
+      if(!cur)return cur;
+      cur.deposit=Math.round(((cur.deposit??0)+loanAmt)*100)/100;
+      return cur;
+    });
+    await update(ref(db,`state/bankLoans/${currentUser}`),{
+      principal:loanAmt,remaining:loanAmt,ratePercent:rate,
+      totalWeeks:loanWeeks,paidWeeks:0,repayType:loanType,
+      startedAt:now,lastCharged:now
+    });
+    const hist=[...(fbState?.bankHistory?.[currentUser]??[]),
+      {type:'loan-receive',amount:loanAmt,weeks:loanWeeks,rate,ts:now}];
+    await runTransaction(ref(db,`state/bankHistory/${currentUser}`),()=>hist);
+    showToast(`🏛 ${fmt(loanAmt)}점 대출 완료!`,'success');
+    loanAmt=0;loanSubTab='apply';switchTab('loan');
+  }catch(e){showToast('오류가 발생했습니다','error');}
+};
+
+window.confirmRepay=async function(){
+  closeModal();
+  const L=loan(currentUser);if(!L)return;
+  const sched=calcSchedule(L.principal,L.ratePercent,L.totalWeeks,L.repayType);
+  const row=sched[L.paidWeeks];if(!row)return;
+  const d=dep(currentUser);
+  if(d<row.total)return showToast('예금이 부족합니다','error');
+  const now=Date.now();
+  const newPaid=L.paidWeeks+1;
+  const newRem=Math.max(0,L.remaining-row.principal);
+  const done=newPaid>=L.totalWeeks||newRem<=0;
+  try{
+    await runTransaction(ref(db,`state/students/${currentUser}`),cur=>{
+      if(!cur)return cur;
+      cur.deposit=Math.round(((cur.deposit??0)-row.total)*100)/100;
+      return cur;
+    });
+    await update(ref(db,`state/bankLoans/${currentUser}`),{
+      remaining:done?0:newRem,paidWeeks:newPaid,lastCharged:now
+    });
+    const hist=[...(fbState?.bankHistory?.[currentUser]??[]),
+      {type:'loan-payment',amount:row.total,weekNo:newPaid,ts:now}];
+    if(done)hist.push({type:'loan-complete',ts:now});
+    await runTransaction(ref(db,`state/bankHistory/${currentUser}`),()=>hist);
+    showToast(done?'🎉 대출 완납! 고생했어요!':`✅ ${newPaid}회차 상환 완료`,'success');
+    switchTab('loan');
+  }catch(e){showToast('오류가 발생했습니다','error');}
+};
+
+// ════════════════════════════════════
+// 💸 송금
+// ════════════════════════════════════
+function renderTransfer(){
+  const d=dep(currentUser);
+  const others=ALL_STUDENTS.filter(s=>s.name!==currentUser);
+  const filtered=searchQuery?others.filter(s=>s.name.includes(searchQuery)):others;
+  const recHtml=filtered.map(s=>{
+    const color=GC[s.group-1]||'#4f80ff';
+    return `<div class="recipient-item ${transferTarget===s.name?'selected':''}" onclick="selRecv('${s.name}')">
+      <div class="recv-avatar" style="background:linear-gradient(135deg,#1e2a4a,${color})">${init(s.name)}</div>
+      <div class="recv-info"><div class="recv-name">${s.name}</div><div class="recv-group">${GN[s.group]}</div></div>
+      <div class="recv-balance">${fmt(dep(s.name))}점</div>
+    </div>`;
+  }).join('');
+  document.getElementById('main-content').innerHTML=`
+    <div class="page-wrap">
+      <div><div class="page-title">💸 송금</div><div class="page-sub">예금에 있는 점수만 보낼 수 있어요</div></div>
+      <div>
+        <label class="form-label">받는 사람</label>
+        <div class="search-wrap" style="margin-bottom:10px;"><span>🔍</span><input placeholder="이름 검색..." id="si" value="${searchQuery}" oninput="onSQ(this.value)" autocomplete="off"/></div>
+        <div class="form-card"><div>${recHtml||'<div class="empty-tx">검색 결과 없음</div>'}</div></div>
+      </div>
+      <div>
+        <label class="form-label">금액</label>
+        <div class="amount-input-wrap">
+          <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px;">
+            <input class="amount-input" type="number" id="ai" placeholder="0" min="1" max="${Math.floor(d)}" value="${transferAmount||''}" oninput="onTA(this.value)"/>
+            <span class="amount-unit">점</span>
+          </div>
+          <div class="amount-avail">예금 <strong>${fmt(d)}점</strong> 가능</div>
+          <div class="quick-amounts">
+            ${[100,500,1000,5000].map(v=>`<button class="qa-btn" onclick="addTA(${v})">+${fmt(v)}</button>`).join('')}
+            <button class="qa-btn" onclick="maxTA()">전액</button>
+          </div>
+        </div>
+      </div>
+      <button class="primary-btn" id="btn-tf" onclick="openTfModal()" ${!transferTarget||transferAmount<=0?'disabled':''}>
+        ${transferTarget?`${transferTarget}에게 ${fmt(transferAmount)}점 송금`:'받는 사람과 금액을 선택하세요'}
+      </button>
+    </div>`;
+}
+window.onSQ=v=>{searchQuery=v;renderTransfer();setTimeout(()=>document.getElementById('si')?.focus(),10);};
+window.selRecv=n=>{transferTarget=(transferTarget===n)?null:n;renderTransfer();};
+window.onTA=v=>{
+  const max=Math.floor(dep(currentUser));
+  transferAmount=Math.min(Math.max(0,parseInt(v)||0),max);
+  const b=document.getElementById('btn-tf');
+  if(b){b.disabled=!transferTarget||transferAmount<=0;b.textContent=(transferTarget&&transferAmount>0)?`${transferTarget}에게 ${fmt(transferAmount)}점 송금`:'받는 사람과 금액을 선택하세요';}
+};
+window.addTA=v=>{transferAmount=Math.min(transferAmount+v,Math.floor(dep(currentUser)));const i=document.getElementById('ai');if(i)i.value=transferAmount;onTA(transferAmount);};
+window.maxTA=()=>{transferAmount=Math.floor(dep(currentUser));const i=document.getElementById('ai');if(i)i.value=transferAmount;onTA(transferAmount);};
+window.openTfModal=function(){
+  const d=dep(currentUser);
+  if(!transferTarget)return showToast('받는 사람을 선택하세요','error');
+  if(transferAmount<=0)return showToast('금액을 입력하세요','error');
+  if(transferAmount>Math.floor(d))return showToast('예금이 부족합니다','error');
+  showModal(`
+    <div class="modal-handle"></div>
+    <div class="modal-title">송금 확인</div>
+    <div class="modal-sub">아래 내용을 확인해주세요</div>
+    <div class="mrow"><span class="mrow-label">보내는 사람</span><span class="mrow-value">${currentUser}</span></div>
+    <div class="mrow"><span class="mrow-label">받는 사람</span><span class="mrow-value">${transferTarget} (${gname(transferTarget)})</span></div>
+    <div class="mrow"><span class="mrow-label">금액</span><span class="mrow-value accent">${fmt(transferAmount)}점</span></div>
+    <div class="mrow"><span class="mrow-label">송금 후 예금</span><span class="mrow-value">${fmt(d-transferAmount)}점</span></div>
+    <div class="modal-btns">
+      <button class="mbtn-cancel" onclick="closeModal()">취소</button>
+      <button class="mbtn-confirm" onclick="confirmTransfer()">송금하기</button>
+    </div>`);
+};
+window.confirmTransfer=async function(){
+  closeModal();
+  try{
+    let ok=false;
+    await runTransaction(ref(db,`state/students/${currentUser}`),cur=>{
+      if(!cur)return cur;
+      if((cur.deposit??0)<transferAmount)return;
+      cur.deposit=Math.round((cur.deposit-transferAmount)*100)/100;
+      ok=true;return cur;
+    });
+    if(!ok)return showToast('예금이 부족합니다','error');
+    await runTransaction(ref(db,`state/students/${transferTarget}`),cur=>{
+      if(!cur)return cur;
+      cur.deposit=Math.round(((cur.deposit??0)+transferAmount)*100)/100;
+      return cur;
+    });
+    const ts=Date.now();
+    await runTransaction(ref(db,`state/bankHistory/${currentUser}`),cur=>[...(cur??[]),{type:'send',to:transferTarget,amount:transferAmount,ts}]);
+    await runTransaction(ref(db,`state/bankHistory/${transferTarget}`),cur=>[...(cur??[]),{type:'recv',from:currentUser,amount:transferAmount,ts}]);
+    showToast(`✅ ${transferTarget}에게 ${fmt(transferAmount)}점 송금 완료!`,'success');
+    transferTarget=null;transferAmount=0;switchTab('home');
+  }catch(e){showToast('오류가 발생했습니다','error');}
+};
+
+// ════════════════════════════════════
+// 🏆 순위
+// ════════════════════════════════════
+function renderRanking(){
+  const ranked=ALL_STUDENTS.map(s=>({name:s.name,group:s.group,deposit:dep(s.name)})).sort((a,b)=>b.deposit-a.deposit);
+  const list=ranked.map((s,i)=>{
+    const isMe=s.name===currentUser;
+    const nc=i===0?'gold':i===1?'silver':i===2?'bronze':'other';
+    const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1;
+    const color=GC[s.group-1]||'#4f80ff';
+    return `<div class="rank-item ${isMe?'me':''}">
+      <div class="rank-num ${nc}">${medal}</div>
+      <div class="rank-av" style="background:linear-gradient(135deg,#1e2a4a,${color})">${init(s.name)}</div>
+      <div class="rank-info"><div class="rank-name">${s.name}${isMe?' <span class="rank-tag">나</span>':''}</div><div class="rank-group">${GN[s.group]}</div></div>
+      <div class="rank-deposit">${fmt(s.deposit)}점</div>
+    </div>`;
+  }).join('');
+  document.getElementById('main-content').innerHTML=`
+    <div style="padding:20px 20px 12px;">
+      <div class="page-title">🏆 예금 순위</div>
+      <div class="page-sub" style="margin-top:4px;">예금 잔액 기준 랭킹이에요</div>
+    </div>
+    <div class="rank-list">${list}</div>`;
+}
+
+// ════════════════════════════════════
+// 모달 / 토스트
+// ════════════════════════════════════
+function showModal(html){document.getElementById('modal-inner').innerHTML=html;document.getElementById('main-modal').classList.add('open');}
+window.closeModal=()=>document.getElementById('main-modal').classList.remove('open');
+document.getElementById('main-modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+window.showToast=function(msg,type='info'){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className=`toast ${type} show`;
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),3200);
+};
+function showToast(msg,type){window.showToast(msg,type);}
+</script>
+</body>
+</html>

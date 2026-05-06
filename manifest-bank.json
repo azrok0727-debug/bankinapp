@@ -1,0 +1,24 @@
+{
+  "name": "가나디뱅크",
+  "short_name": "가나디뱅크",
+  "description": "가나디 학급 은행 앱",
+  "start_url": "./ganadibank.html",
+  "display": "standalone",
+  "background_color": "#0a0f1e",
+  "theme_color": "#0a0f1e",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "./icon-bank-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon-bank-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

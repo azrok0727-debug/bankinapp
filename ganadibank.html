@@ -500,9 +500,6 @@ function renderHome(){
       if(h.type==='loan-receive')return txRow('loan-out','🏛',`대출 실행 (${h.weeks}주)`,h.ts,`+${fmt(h.amount)}점`);
       if(h.type==='loan-payment')return txRow('loan-pay','📤',`대출 상환 ${h.weekNo}회차`,h.ts,`-${fmt(h.amount)}점`);
       if(h.type==='loan-complete')return txRow('recv','✅','대출 완납 🎉',h.ts,'');
-      if(h.type==='coupon-buy')return txRow('send','🛍️',`쿠폰 구매: ${h.productName}`,h.ts,`-${fmt(h.amount)}점`);
-      if(h.type==='coupon-resell-buy')return txRow('send','🔄',`리셀 구매: ${h.productName}`,h.ts,`-${fmt(h.amount)}점`);
-      if(h.type==='coupon-resell-sell')return txRow('recv','🔄',`리셀 판매: ${h.productName}`,h.ts,`+${fmt(h.amount)}점`);
       return '';
     }).join('');
   const rawLastHome=fbState?.bankInterest?.[currentUser]?.lastApplied;
@@ -850,19 +847,22 @@ window.confirmLoan=async function(){
   const rate=loanRate(loanAmt/tot,loanWeeks);
   const now=Date.now();
   try{
-    await runTransaction(ref(db,`state/students/${currentUser}`),cur=>{
-      if(!cur)return cur;
-      cur.deposit=Math.round(((cur.deposit??0)+loanAmt)*100)/100;
-      return cur;
-    });
-    await update(ref(db,`state/bankLoans/${currentUser}`),{
-      principal:loanAmt,remaining:loanAmt,ratePercent:rate,
-      totalWeeks:loanWeeks,paidWeeks:0,repayType:loanType,
-      startedAt:now,lastCharged:now
-    });
+    const snap=await get(ref(db,`state/students/${currentUser}`));
+    const stu=snap.val();
+    if(!stu)return showToast('오류가 발생했습니다','error');
+    const newDeposit=Math.round(((stu.deposit??0)+loanAmt)*100)/100;
     const hist=[...(fbState?.bankHistory?.[currentUser]??[]),
       {type:'loan-receive',amount:loanAmt,weeks:loanWeeks,rate,ts:now}];
-    await runTransaction(ref(db,`state/bankHistory/${currentUser}`),()=>hist);
+    // 한 번의 update()로 deposit + 대출정보 + 거래내역 동시 반영
+    await update(ref(db),{
+      [`state/students/${currentUser}/deposit`]: newDeposit,
+      [`state/bankLoans/${currentUser}`]: {
+        principal:loanAmt,remaining:loanAmt,ratePercent:rate,
+        totalWeeks:loanWeeks,paidWeeks:0,repayType:loanType,
+        startedAt:now,lastCharged:now
+      },
+      [`state/bankHistory/${currentUser}`]: hist,
+    });
     showToast(`🏛 ${fmt(loanAmt)}점 대출 완료!`,'success');
     loanAmt=0;loanSubTab='apply';switchTab('loan');
   }catch(e){showToast('오류가 발생했습니다','error');}
@@ -880,18 +880,21 @@ window.confirmRepay=async function(){
   const newRem=Math.max(0,L.remaining-row.principal);
   const done=newPaid>=L.totalWeeks||newRem<=0;
   try{
-    await runTransaction(ref(db,`state/students/${currentUser}`),cur=>{
-      if(!cur)return cur;
-      cur.deposit=Math.round(((cur.deposit??0)-row.total)*100)/100;
-      return cur;
-    });
-    await update(ref(db,`state/bankLoans/${currentUser}`),{
-      remaining:done?0:newRem,paidWeeks:newPaid,lastCharged:now
-    });
+    const snap=await get(ref(db,`state/students/${currentUser}`));
+    const stu=snap.val();
+    if(!stu)return showToast('오류가 발생했습니다','error');
+    const newDeposit=Math.round(((stu.deposit??0)-row.total)*100)/100;
     const hist=[...(fbState?.bankHistory?.[currentUser]??[]),
       {type:'loan-payment',amount:row.total,weekNo:newPaid,ts:now}];
     if(done)hist.push({type:'loan-complete',ts:now});
-    await runTransaction(ref(db,`state/bankHistory/${currentUser}`),()=>hist);
+    // 한 번의 update()로 deposit + 대출정보 + 거래내역 동시 반영
+    await update(ref(db),{
+      [`state/students/${currentUser}/deposit`]: newDeposit,
+      [`state/bankLoans/${currentUser}/remaining`]: done?0:newRem,
+      [`state/bankLoans/${currentUser}/paidWeeks`]: newPaid,
+      [`state/bankLoans/${currentUser}/lastCharged`]: now,
+      [`state/bankHistory/${currentUser}`]: hist,
+    });
     showToast(done?'🎉 대출 완납! 고생했어요!':`✅ ${newPaid}회차 상환 완료`,'success');
     switchTab('loan');
   }catch(e){showToast('오류가 발생했습니다','error');}
@@ -970,22 +973,37 @@ window.openTfModal=function(){
 window.confirmTransfer=async function(){
   closeModal();
   try{
+    // 보내는 사람 예금 확인 및 차감 (트랜잭션으로 검증)
+    let fromDeposit=0, toDeposit=0;
     let ok=false;
     await runTransaction(ref(db,`state/students/${currentUser}`),cur=>{
       if(!cur)return cur;
-      if((cur.deposit??0)<transferAmount)return;
-      cur.deposit=Math.round((cur.deposit-transferAmount)*100)/100;
-      ok=true;return cur;
+      if((cur.deposit??0)<transferAmount)return; // abort
+      fromDeposit=Math.round((cur.deposit-transferAmount)*100)/100;
+      cur.deposit=fromDeposit;
+      ok=true; return cur;
     });
     if(!ok)return showToast('예금이 부족합니다','error');
-    await runTransaction(ref(db,`state/students/${transferTarget}`),cur=>{
-      if(!cur)return cur;
-      cur.deposit=Math.round(((cur.deposit??0)+transferAmount)*100)/100;
-      return cur;
-    });
+
+    // 받는 사람 예금 + 거래내역 — update()로 한 번에 원자적 처리
     const ts=Date.now();
-    await runTransaction(ref(db,`state/bankHistory/${currentUser}`),cur=>[...(cur??[]),{type:'send',to:transferTarget,amount:transferAmount,ts}]);
-    await runTransaction(ref(db,`state/bankHistory/${transferTarget}`),cur=>[...(cur??[]),{type:'recv',from:currentUser,amount:transferAmount,ts}]);
+    const toSnap=await get(ref(db,`state/students/${transferTarget}`));
+    const toStu=toSnap.val();
+    if(!toStu)return showToast('받는 사람 정보를 찾을 수 없습니다','error');
+    toDeposit=Math.round(((toStu.deposit??0)+transferAmount)*100)/100;
+
+    const fromHist=[...(fbState?.bankHistory?.[currentUser]??[]),
+      {type:'send',to:transferTarget,amount:transferAmount,ts}];
+    const toHist=[...(fbState?.bankHistory?.[transferTarget]??[]),
+      {type:'recv',from:currentUser,amount:transferAmount,ts}];
+
+    // 한 번의 update()로 받는 사람 deposit + 양쪽 거래내역 동시 반영
+    await update(ref(db), {
+      [`state/students/${transferTarget}/deposit`]: toDeposit,
+      [`state/bankHistory/${currentUser}`]: fromHist,
+      [`state/bankHistory/${transferTarget}`]: toHist,
+    });
+
     showToast(`✅ ${transferTarget}에게 ${fmt(transferAmount)}점 송금 완료!`,'success');
     transferTarget=null;transferAmount=0;switchTab('home');
   }catch(e){showToast('오류가 발생했습니다','error');}

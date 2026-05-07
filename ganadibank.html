@@ -345,8 +345,12 @@ function calcSchedule(principal, ratePerWeek, weeks, type) {
   return rows;
 }
 
+// ── 선생님 계정 ───────────────────────────────────────────
+const TEACHER = { name:'김민재 선생님', password:'teacher2024', group:0 };
+
 // ── 앱 상태 ──────────────────────────────────────────────
 let fbState=null, currentUser=null, activeTab='home';
+let loginView='login'; // 'login' | 'changepw'
 let transferTarget=null, transferAmount=0, searchQuery='';
 let loanAmt=0, loanWeeks=1, loanType='equal', loanSubTab='apply';
 
@@ -359,13 +363,17 @@ onValue(ref(db,'state'), snap=>{
 // ── 유틸 ─────────────────────────────────────────────────
 const fmt  = n => (n==null?0:Math.floor(n)).toLocaleString('ko-KR');
 const fmtF = n => n==null?'0':(Math.floor(n*10)/10).toLocaleString('ko-KR');
-const dep  = name => fbState?.students?.[name]?.deposit??0;
+const dep  = name => {
+  if(name===TEACHER.name) return fbState?.bankTeacher?.deposit??0;
+  return fbState?.students?.[name]?.deposit??0;
+};
 const grp  = name => ALL_STUDENTS.find(s=>s.name===name)?.group??0;
 const gname= name => {const g=grp(name);return g?GN[g]:'';}
 const gcol = name => {const g=grp(name);return g?GC[g-1]:'#4f80ff';}
 const init = name => name?.[0]??'?';
 const loan = name => fbState?.bankLoans?.[name]??null;
 function totalAsset(name){
+  if(name===TEACHER.name) return fbState?.bankTeacher?.deposit??0;
   const stu=fbState?.students?.[name];
   if(!stu)return 0;
   let sv=0;
@@ -442,29 +450,105 @@ setTimeout(()=>{
 function renderLogin(){
   document.getElementById('app-header').style.display='none';
   document.getElementById('bottom-nav').style.display='none';
-  const opts=ALL_STUDENTS.map(s=>`<option value="${s.name}">${s.name} (${GN[s.group]})</option>`).join('');
+  if(loginView==='changepw'){ renderChangePw(); return; }
+  const groupOpts=GROUPS.map(g=>
+    `<optgroup label="${g.name}">`+
+    g.members.map(m=>`<option value="${m}">${m}</option>`).join('')+
+    `</optgroup>`
+  ).join('');
   document.getElementById('main-content').innerHTML=`
     <div class="login-wrap"><div class="login-card">
       <div class="login-bank-logo">🏦</div>
-      <div class="login-title">가나디뱅크</div>
-      <div class="login-subtitle">예금·송금·이자·대출 서비스</div>
+      <div class="login-title">가나디<span style="color:var(--accent);">뱅크</span></div>
+      <div class="login-subtitle">이름을 선택하고 입장하세요</div>
       <label class="login-label">계좌 선택</label>
-      <select class="login-select" id="ls"><option value="">이름을 선택하세요</option>${opts}</select>
+      <select class="login-select" id="ls">
+        <option value="">— 이름 선택 —</option>
+        ${groupOpts}
+        <optgroup label="관리자"><option value="김민재 선생님">김민재 선생님</option></optgroup>
+      </select>
+      <label class="login-label" style="margin-top:4px;">비밀번호</label>
+      <input type="password" class="login-select" id="lpw" placeholder="비밀번호 입력"
+        style="margin-bottom:16px;" onkeydown="if(event.key==='Enter')document.getElementById('lb').click()" />
       <button class="login-btn" id="lb">🏦 입장하기</button>
+      <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:10px;">초기 비밀번호: <b>1234</b></div>
+      <div style="text-align:center;margin-top:8px;">
+        <button onclick="showChangePw()" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--text2);font-family:var(--font);text-decoration:underline;padding:4px;">비밀번호 변경</button>
+      </div>
     </div></div>`;
-  document.getElementById('lb').onclick=()=>{
-    const name=document.getElementById('ls').value;
-    if(!name)return showToast('이름을 선택해주세요','error');
+  document.getElementById('lb').onclick=doLogin;
+}
+
+async function doLogin(){
+  const name=document.getElementById('ls').value;
+  const pw=document.getElementById('lpw').value;
+  if(!name)return showToast('이름을 선택해주세요','error');
+  if(!pw)return showToast('비밀번호를 입력해주세요','error');
+  // 선생님 계정
+  if(name===TEACHER.name){
+    if(pw!==TEACHER.password)return showToast('비밀번호가 틀렸습니다 ❌','error');
     currentUser=name;
+    // bankTeacher 없으면 초기화
+    if(!fbState?.bankTeacher){
+      await update(ref(db,'state/bankTeacher'),{deposit:0});
+    }
     document.getElementById('app-header').style.display='flex';
     document.getElementById('bottom-nav').style.display='flex';
-    switchTab('home');
-  };
+    switchTab('home'); return;
+  }
+  // 학생 계정
+  if(!fbState)return showToast('데이터 로딩 중이에요. 잠시 후 다시 시도해주세요','error');
+  const savedPw=fbState.students?.[name]?.password??'1234';
+  if(pw!==savedPw)return showToast('비밀번호가 틀렸습니다 ❌','error');
+  currentUser=name;
+  document.getElementById('app-header').style.display='flex';
+  document.getElementById('bottom-nav').style.display='flex';
+  switchTab('home');
 }
+
+function renderChangePw(){
+  const groupOpts=GROUPS.map(g=>
+    `<optgroup label="${g.name}">`+
+    g.members.map(m=>`<option value="${m}">${m}</option>`).join('')+
+    `</optgroup>`
+  ).join('');
+  document.getElementById('main-content').innerHTML=`
+    <div class="login-wrap"><div class="login-card">
+      <button onclick="hideChangePw()" style="background:none;border:none;cursor:pointer;font-size:14px;color:var(--accent);font-family:var(--font);padding:0;margin-bottom:16px;display:block;font-weight:600;">← 뒤로</button>
+      <div style="font-size:18px;font-weight:700;margin-bottom:18px;">🔒 비밀번호 변경</div>
+      <select class="login-select" id="cpw-name" style="margin-bottom:10px;">
+        <option value="">— 이름 선택 —</option>${groupOpts}
+      </select>
+      <input type="password" class="login-select" id="cpw-old"  placeholder="현재 비밀번호" style="margin-bottom:10px;" />
+      <input type="password" class="login-select" id="cpw-new1" placeholder="새 비밀번호 (4자 이상)" style="margin-bottom:10px;" />
+      <input type="password" class="login-select" id="cpw-new2" placeholder="새 비밀번호 확인" style="margin-bottom:14px;" />
+      <button class="login-btn" onclick="doChangePw()">변경하기</button>
+      <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:10px;">초기 비밀번호: <b>1234</b></div>
+    </div></div>`;
+}
+
+window.showChangePw=function(){ loginView='changepw'; renderChangePw(); };
+window.hideChangePw=function(){ loginView='login'; renderLogin(); };
+
+window.doChangePw=async function(){
+  const name=document.getElementById('cpw-name').value;
+  const oldPw=document.getElementById('cpw-old').value;
+  const new1=document.getElementById('cpw-new1').value;
+  const new2=document.getElementById('cpw-new2').value;
+  if(!name)return showToast('이름을 선택해주세요','error');
+  if(!oldPw)return showToast('현재 비밀번호를 입력해주세요','error');
+  const savedPw=fbState?.students?.[name]?.password??'1234';
+  if(oldPw!==savedPw)return showToast('현재 비밀번호가 틀렸습니다 ❌','error');
+  if(new1.length<4)return showToast('비밀번호는 4자리 이상이어야 해요','error');
+  if(new1!==new2)return showToast('새 비밀번호가 일치하지 않습니다','error');
+  await update(ref(db,`state/students/${name}`),{password:new1});
+  showToast(`${name}의 비밀번호가 변경됐어요! 🎉`,'success');
+  loginView='login'; renderLogin();
+};
 
 window.doLogout=()=>{
   if(!confirm('로그아웃하시겠습니까?'))return;
-  currentUser=null;activeTab='home';
+  currentUser=null;activeTab='home';loginView='login';
   transferTarget=null;transferAmount=0;
   document.getElementById('app-header').style.display='none';
   document.getElementById('bottom-nav').style.display='none';
@@ -487,6 +571,8 @@ function renderCurrentTab(){
 // ════════════════════════════════════
 // 🏠 홈
 // ════════════════════════════════════
+function isTeacher(){ return currentUser===TEACHER.name; }
+
 function renderHome(){
   const d=dep(currentUser);
   const L=loan(currentUser);
@@ -905,13 +991,15 @@ window.confirmRepay=async function(){
 // ════════════════════════════════════
 function renderTransfer(){
   const d=dep(currentUser);
-  const others=ALL_STUDENTS.filter(s=>s.name!==currentUser);
+  const teacherEntry = currentUser===TEACHER.name ? [] : [{name:TEACHER.name, group:0}];
+  const others=[...ALL_STUDENTS.filter(s=>s.name!==currentUser), ...teacherEntry];
   const filtered=searchQuery?others.filter(s=>s.name.includes(searchQuery)):others;
   const recHtml=filtered.map(s=>{
-    const color=GC[s.group-1]||'#4f80ff';
+    const color=s.group===0?'#f5c842':(GC[s.group-1]||'#4f80ff');
+    const groupLabel=s.group===0?'관리자':(GN[s.group]||'');
     return `<div class="recipient-item ${transferTarget===s.name?'selected':''}" onclick="selRecv('${s.name}')">
       <div class="recv-avatar" style="background:linear-gradient(135deg,#1e2a4a,${color})">${init(s.name)}</div>
-      <div class="recv-info"><div class="recv-name">${s.name}</div><div class="recv-group">${GN[s.group]}</div></div>
+      <div class="recv-info"><div class="recv-name">${s.name}</div><div class="recv-group">${groupLabel}</div></div>
       <div class="recv-balance">${fmt(dep(s.name))}점</div>
     </div>`;
   }).join('');
@@ -970,36 +1058,36 @@ window.openTfModal=function(){
       <button class="mbtn-confirm" onclick="confirmTransfer()">송금하기</button>
     </div>`);
 };
+// 계정별 deposit Firebase 경로
+function depPath(name){ return name===TEACHER.name ? 'state/bankTeacher/deposit' : `state/students/${name}/deposit`; }
+function depRef(name){ return ref(db, depPath(name)); }
+
 window.confirmTransfer=async function(){
   closeModal();
   try{
-    // 보내는 사람 예금 확인 및 차감 (트랜잭션으로 검증)
-    let fromDeposit=0, toDeposit=0;
+    // 보내는 사람 예금 확인 및 차감
     let ok=false;
-    await runTransaction(ref(db,`state/students/${currentUser}`),cur=>{
-      if(!cur)return cur;
-      if((cur.deposit??0)<transferAmount)return; // abort
-      fromDeposit=Math.round((cur.deposit-transferAmount)*100)/100;
-      cur.deposit=fromDeposit;
-      ok=true; return cur;
+    await runTransaction(depRef(currentUser),cur=>{
+      const d=cur??0;
+      if(d<transferAmount)return; // abort
+      ok=true;
+      return Math.round((d-transferAmount)*100)/100;
     });
     if(!ok)return showToast('예금이 부족합니다','error');
 
-    // 받는 사람 예금 + 거래내역 — update()로 한 번에 원자적 처리
+    // 받는 사람 deposit 현재값 조회
     const ts=Date.now();
-    const toSnap=await get(ref(db,`state/students/${transferTarget}`));
-    const toStu=toSnap.val();
-    if(!toStu)return showToast('받는 사람 정보를 찾을 수 없습니다','error');
-    toDeposit=Math.round(((toStu.deposit??0)+transferAmount)*100)/100;
+    const toSnap=await get(depRef(transferTarget));
+    const toDep=toSnap.val()??0;
+    const toDeposit=Math.round((toDep+transferAmount)*100)/100;
 
     const fromHist=[...(fbState?.bankHistory?.[currentUser]??[]),
       {type:'send',to:transferTarget,amount:transferAmount,ts}];
     const toHist=[...(fbState?.bankHistory?.[transferTarget]??[]),
       {type:'recv',from:currentUser,amount:transferAmount,ts}];
 
-    // 한 번의 update()로 받는 사람 deposit + 양쪽 거래내역 동시 반영
-    await update(ref(db), {
-      [`state/students/${transferTarget}/deposit`]: toDeposit,
+    await update(ref(db),{
+      [depPath(transferTarget)]: toDeposit,
       [`state/bankHistory/${currentUser}`]: fromHist,
       [`state/bankHistory/${transferTarget}`]: toHist,
     });

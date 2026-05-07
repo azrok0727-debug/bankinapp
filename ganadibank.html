@@ -363,17 +363,13 @@ onValue(ref(db,'state'), snap=>{
 // ── 유틸 ─────────────────────────────────────────────────
 const fmt  = n => (n==null?0:Math.floor(n)).toLocaleString('ko-KR');
 const fmtF = n => n==null?'0':(Math.floor(n*10)/10).toLocaleString('ko-KR');
-const dep  = name => {
-  if(name===TEACHER.name) return fbState?.bankTeacher?.deposit??0;
-  return fbState?.students?.[name]?.deposit??0;
-};
+const dep  = name => fbState?.students?.[name]?.deposit??0;
 const grp  = name => ALL_STUDENTS.find(s=>s.name===name)?.group??0;
 const gname= name => {const g=grp(name);return g?GN[g]:'';}
 const gcol = name => {const g=grp(name);return g?GC[g-1]:'#4f80ff';}
 const init = name => name?.[0]??'?';
 const loan = name => fbState?.bankLoans?.[name]??null;
 function totalAsset(name){
-  if(name===TEACHER.name) return fbState?.bankTeacher?.deposit??0;
   const stu=fbState?.students?.[name];
   if(!stu)return 0;
   let sv=0;
@@ -488,9 +484,9 @@ async function doLogin(){
   if(name===TEACHER.name){
     if(pw!==TEACHER.password)return showToast('비밀번호가 틀렸습니다 ❌','error');
     currentUser=name;
-    // bankTeacher 없으면 초기화
-    if(!fbState?.bankTeacher){
-      await update(ref(db,'state/bankTeacher'),{deposit:0});
+    // students에 선생님 계정 없으면 초기화
+    if(!fbState?.students?.[name]){
+      await update(ref(db,`state/students/${name}`),{deposit:0,holdings:{},history:[],group:0});
     }
     document.getElementById('app-header').style.display='flex';
     document.getElementById('bottom-nav').style.display='flex';
@@ -1058,8 +1054,8 @@ window.openTfModal=function(){
       <button class="mbtn-confirm" onclick="confirmTransfer()">송금하기</button>
     </div>`);
 };
-// 계정별 deposit Firebase 경로
-function depPath(name){ return name===TEACHER.name ? 'state/bankTeacher/deposit' : `state/students/${name}/deposit`; }
+// deposit Firebase 경로
+function depPath(name){ return `state/students/${name}/deposit`; }
 function depRef(name){ return ref(db, depPath(name)); }
 
 window.confirmTransfer=async function(){

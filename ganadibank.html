@@ -582,6 +582,8 @@ function renderHome(){
       if(h.type==='loan-receive')return txRow('loan-out','🏛',`대출 실행 (${h.weeks}주)`,h.ts,`+${fmt(h.amount)}점`);
       if(h.type==='loan-payment')return txRow('loan-pay','📤',`대출 상환 ${h.weekNo}회차`,h.ts,`-${fmt(h.amount)}점`);
       if(h.type==='loan-complete')return txRow('recv','✅','대출 완납 🎉',h.ts,'');
+      if(h.type==='tax')return txRow('send','🏛','세금 납부',h.ts,`-${fmt(h.amount)}점`);
+      if(h.type==='tax-income')return txRow('recv','💰',`세금 수입 (${h.from}명)`,h.ts,`+${fmt(h.amount)}점`);
       return '';
     }).join('');
   const rawLastHome=fbState?.bankInterest?.[currentUser]?.lastApplied;

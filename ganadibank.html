@@ -89,6 +89,37 @@ body{overflow-x:hidden;}::-webkit-scrollbar{width:0;}
 .quick-icon.red{background:rgba(255,94,122,0.12);}
 .quick-label{font-size:12px;font-weight:600;color:var(--text);}
 
+/* 계좌 슬라이더 */
+.accounts-slider{display:flex;gap:12px;padding:20px 20px 0;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.accounts-slider::-webkit-scrollbar{display:none;}
+.account-card{min-width:calc(100% - 40px);scroll-snap-align:start;background:linear-gradient(135deg,#1a2f6e 0%,#2a4fa8 50%,#1e3a8a 100%);border-radius:var(--radius-lg);padding:24px;position:relative;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.4);flex-shrink:0;}
+.account-card.coupon{background:linear-gradient(135deg,#1a3a2a 0%,#1e6644 50%,#0d4a2e 100%);}
+.account-card.stock{background:linear-gradient(135deg,#2a1a4a 0%,#4a2a8a 50%,#1e0a5a 100%);}
+.account-card::before{content:'';position:absolute;top:-40px;right:-40px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,0.04);}
+.account-card::after{content:'';position:absolute;bottom:-60px;left:-30px;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,0.03);}
+.acc-type{font-size:12px;font-weight:600;color:rgba(255,255,255,0.6);letter-spacing:1px;margin-bottom:6px;}
+.acc-name{font-size:18px;font-weight:700;color:white;margin-bottom:20px;}
+.acc-balance-label{font-size:12px;color:rgba(255,255,255,0.55);margin-bottom:6px;}
+.acc-balance{font-size:34px;font-weight:900;color:white;letter-spacing:-1px;line-height:1;position:relative;z-index:1;}
+.acc-balance span{font-size:16px;font-weight:600;opacity:.7;margin-left:4px;}
+.acc-badge{display:inline-flex;align-items:center;gap:5px;margin-top:10px;padding:8px 14px;border-radius:10px;font-size:12px;font-weight:600;position:relative;z-index:1;}
+.acc-badge.green{background:rgba(34,212,160,0.15);border:1px solid rgba(34,212,160,0.3);color:var(--green);}
+.acc-badge.red{background:rgba(255,94,122,0.12);border:1px solid rgba(255,94,122,0.3);color:var(--red);}
+.acc-badge.yellow{background:rgba(245,200,66,0.15);border:1px solid rgba(245,200,66,0.3);color:var(--gold);}
+.acc-badge.purple{background:rgba(167,139,250,0.15);border:1px solid rgba(167,139,250,0.3);color:var(--purple);}
+.acc-dots{display:flex;gap:6px;justify-content:center;padding:10px 0 0;}
+.acc-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.2);transition:all .2s;}
+.acc-dot.active{background:white;width:18px;border-radius:3px;}
+/* 주식 상세 */
+.stock-list{display:flex;flex-direction:column;gap:8px;}
+.stock-item{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);}
+.stock-ticker{font-size:13px;font-weight:800;color:var(--accent);width:48px;flex-shrink:0;}
+.stock-info{flex:1;}
+.stock-name{font-size:13px;font-weight:600;}
+.stock-qty{font-size:12px;color:var(--text3);margin-top:2px;}
+.stock-val{text-align:right;}
+.stock-price{font-size:14px;font-weight:700;}
+.stock-change{font-size:11px;color:var(--text3);}
 /* bottom nav */
 .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--card);border-top:1px solid var(--border2);display:flex;padding:0 6px;padding-bottom:env(safe-area-inset-bottom,0);z-index:100;}
 .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 4px;background:none;border:none;cursor:pointer;font-family:var(--font);gap:4px;}
@@ -273,6 +304,7 @@ body{overflow-x:hidden;}::-webkit-scrollbar{width:0;}
     <button class="nav-btn"        data-tab="transfer" onclick="switchTab('transfer')"><span class="nav-icon">💸</span><span class="nav-label">송금</span></button>
     <button class="nav-btn"        data-tab="interest" onclick="switchTab('interest')"><span class="nav-icon">💰</span><span class="nav-label">이자</span></button>
     <button class="nav-btn"        data-tab="loan"     onclick="switchTab('loan')"><span class="nav-icon">🏛️</span><span class="nav-label">대출</span></button>
+    <button class="nav-btn"        data-tab="coupon"   onclick="switchTab('coupon')" id="nav-coupon" style="display:none;"><span class="nav-icon">🎟</span><span class="nav-label">쿠폰지급</span></button>
     <button class="nav-btn"        data-tab="ranking"  onclick="switchTab('ranking')"><span class="nav-icon">🏆</span><span class="nav-label">순위</span></button>
   </nav>
 </div>
@@ -345,8 +377,12 @@ function calcSchedule(principal, ratePerWeek, weeks, type) {
   return rows;
 }
 
+// ── 선생님 계정 ───────────────────────────────────────────
+const TEACHER = { name:'김민재 선생님', password:'teacher2024', group:0 };
+
 // ── 앱 상태 ──────────────────────────────────────────────
 let fbState=null, currentUser=null, activeTab='home';
+let loginView='login'; // 'login' | 'changepw'
 let transferTarget=null, transferAmount=0, searchQuery='';
 let loanAmt=0, loanWeeks=1, loanType='equal', loanSubTab='apply';
 
@@ -364,13 +400,21 @@ const grp  = name => ALL_STUDENTS.find(s=>s.name===name)?.group??0;
 const gname= name => {const g=grp(name);return g?GN[g]:'';}
 const gcol = name => {const g=grp(name);return g?GC[g-1]:'#4f80ff';}
 const init = name => name?.[0]??'?';
-const loan = name => fbState?.bankLoans?.[name]??null;
+const loan   = name => fbState?.bankLoans?.[name]??null;
+const coupon = name => fbState?.students?.[name]?.couponBalance??0;
+function stockAsset(name){
+  const stu=fbState?.students?.[name];
+  if(!stu)return 0;
+  let sv=0;
+  for(const[t,q]of Object.entries(stu.holdings??{})){if(q&&q>0)sv+=q*(fbState?.prices?.[t]??0);}
+  return sv;
+}
 function totalAsset(name){
   const stu=fbState?.students?.[name];
   if(!stu)return 0;
   let sv=0;
-  for(const[t,q]of Object.entries(stu.holdings??{})){if(q)sv+=q*(fbState?.prices?.[t]??0);}
-  return (stu.deposit??0)+sv;
+  for(const[t,q]of Object.entries(stu.holdings??{})){if(q&&q>0)sv+=q*(fbState?.prices?.[t]??0);}
+  return (stu.deposit??0)+sv+(stu.couponBalance??0);
 }
 function fmtDate(ts){
   const d=new Date(ts);
@@ -442,29 +486,107 @@ setTimeout(()=>{
 function renderLogin(){
   document.getElementById('app-header').style.display='none';
   document.getElementById('bottom-nav').style.display='none';
-  const opts=ALL_STUDENTS.map(s=>`<option value="${s.name}">${s.name} (${GN[s.group]})</option>`).join('');
+  if(loginView==='changepw'){ renderChangePw(); return; }
+  const groupOpts=GROUPS.map(g=>
+    `<optgroup label="${g.name}">`+
+    g.members.map(m=>`<option value="${m}">${m}</option>`).join('')+
+    `</optgroup>`
+  ).join('');
   document.getElementById('main-content').innerHTML=`
     <div class="login-wrap"><div class="login-card">
       <div class="login-bank-logo">🏦</div>
-      <div class="login-title">가나디뱅크</div>
-      <div class="login-subtitle">예금·송금·이자·대출 서비스</div>
+      <div class="login-title">가나디<span style="color:var(--accent);">뱅크</span></div>
+      <div class="login-subtitle">이름을 선택하고 입장하세요</div>
       <label class="login-label">계좌 선택</label>
-      <select class="login-select" id="ls"><option value="">이름을 선택하세요</option>${opts}</select>
+      <select class="login-select" id="ls">
+        <option value="">— 이름 선택 —</option>
+        ${groupOpts}
+        <optgroup label="관리자"><option value="김민재 선생님">김민재 선생님</option></optgroup>
+      </select>
+      <label class="login-label" style="margin-top:4px;">비밀번호</label>
+      <input type="password" class="login-select" id="lpw" placeholder="비밀번호 입력"
+        style="margin-bottom:16px;" onkeydown="if(event.key==='Enter')document.getElementById('lb').click()" />
       <button class="login-btn" id="lb">🏦 입장하기</button>
+      <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:10px;">초기 비밀번호: <b>1234</b></div>
+      <div style="text-align:center;margin-top:8px;">
+        <button onclick="showChangePw()" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--text2);font-family:var(--font);text-decoration:underline;padding:4px;">비밀번호 변경</button>
+      </div>
     </div></div>`;
-  document.getElementById('lb').onclick=()=>{
-    const name=document.getElementById('ls').value;
-    if(!name)return showToast('이름을 선택해주세요','error');
+  document.getElementById('lb').onclick=doLogin;
+}
+
+async function doLogin(){
+  const name=document.getElementById('ls').value;
+  const pw=document.getElementById('lpw').value;
+  if(!name)return showToast('이름을 선택해주세요','error');
+  if(!pw)return showToast('비밀번호를 입력해주세요','error');
+  // 선생님 계정
+  if(name===TEACHER.name){
+    if(pw!==TEACHER.password)return showToast('비밀번호가 틀렸습니다 ❌','error');
     currentUser=name;
+    if(!fbState?.students?.[name]){
+      await update(ref(db,`state/students/${name}`),{deposit:0,holdings:{},history:[],group:0});
+    }
     document.getElementById('app-header').style.display='flex';
     document.getElementById('bottom-nav').style.display='flex';
-    switchTab('home');
-  };
+    // 선생님 전용 탭 표시
+    const couponNav=document.getElementById('nav-coupon');
+    if(couponNav) couponNav.style.display='flex';
+    switchTab('home'); return;
+  }
+  // 학생 계정
+  if(!fbState)return showToast('데이터 로딩 중이에요. 잠시 후 다시 시도해주세요','error');
+  const savedPw=fbState.students?.[name]?.password??'1234';
+  if(pw!==savedPw)return showToast('비밀번호가 틀렸습니다 ❌','error');
+  currentUser=name;
+  document.getElementById('app-header').style.display='flex';
+  document.getElementById('bottom-nav').style.display='flex';
+  switchTab('home');
 }
+
+function renderChangePw(){
+  const groupOpts=GROUPS.map(g=>
+    `<optgroup label="${g.name}">`+
+    g.members.map(m=>`<option value="${m}">${m}</option>`).join('')+
+    `</optgroup>`
+  ).join('');
+  document.getElementById('main-content').innerHTML=`
+    <div class="login-wrap"><div class="login-card">
+      <button onclick="hideChangePw()" style="background:none;border:none;cursor:pointer;font-size:14px;color:var(--accent);font-family:var(--font);padding:0;margin-bottom:16px;display:block;font-weight:600;">← 뒤로</button>
+      <div style="font-size:18px;font-weight:700;margin-bottom:18px;">🔒 비밀번호 변경</div>
+      <select class="login-select" id="cpw-name" style="margin-bottom:10px;">
+        <option value="">— 이름 선택 —</option>${groupOpts}
+      </select>
+      <input type="password" class="login-select" id="cpw-old"  placeholder="현재 비밀번호" style="margin-bottom:10px;" />
+      <input type="password" class="login-select" id="cpw-new1" placeholder="새 비밀번호 (4자 이상)" style="margin-bottom:10px;" />
+      <input type="password" class="login-select" id="cpw-new2" placeholder="새 비밀번호 확인" style="margin-bottom:14px;" />
+      <button class="login-btn" onclick="doChangePw()">변경하기</button>
+      <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:10px;">초기 비밀번호: <b>1234</b></div>
+    </div></div>`;
+}
+
+window.showChangePw=function(){ loginView='changepw'; renderChangePw(); };
+window.hideChangePw=function(){ loginView='login'; renderLogin(); };
+
+window.doChangePw=async function(){
+  const name=document.getElementById('cpw-name').value;
+  const oldPw=document.getElementById('cpw-old').value;
+  const new1=document.getElementById('cpw-new1').value;
+  const new2=document.getElementById('cpw-new2').value;
+  if(!name)return showToast('이름을 선택해주세요','error');
+  if(!oldPw)return showToast('현재 비밀번호를 입력해주세요','error');
+  const savedPw=fbState?.students?.[name]?.password??'1234';
+  if(oldPw!==savedPw)return showToast('현재 비밀번호가 틀렸습니다 ❌','error');
+  if(new1.length<4)return showToast('비밀번호는 4자리 이상이어야 해요','error');
+  if(new1!==new2)return showToast('새 비밀번호가 일치하지 않습니다','error');
+  await update(ref(db,`state/students/${name}`),{password:new1});
+  showToast(`${name}의 비밀번호가 변경됐어요! 🎉`,'success');
+  loginView='login'; renderLogin();
+};
 
 window.doLogout=()=>{
   if(!confirm('로그아웃하시겠습니까?'))return;
-  currentUser=null;activeTab='home';
+  currentUser=null;activeTab='home';loginView='login';
   transferTarget=null;transferAmount=0;
   document.getElementById('app-header').style.display='none';
   document.getElementById('bottom-nav').style.display='none';
@@ -474,70 +596,132 @@ window.doLogout=()=>{
 window.switchTab=function(tab){
   activeTab=tab;
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+  // 선생님 전용 탭 표시
+  const couponNav=document.getElementById('nav-coupon');
+  if(couponNav) couponNav.style.display=isTeacher()?'flex':'none';
   renderCurrentTab();
 };
 
 function renderCurrentTab(){
   if(!currentUser)return;
   if(!fbState){document.getElementById('main-content').innerHTML=`<div class="loading-state"><div class="spinner"></div>로딩 중...</div>`;return;}
-  const map={home:renderHome,transfer:renderTransfer,interest:renderInterest,loan:renderLoan,ranking:renderRanking};
+  const map={home:renderHome,transfer:renderTransfer,interest:renderInterest,loan:renderLoan,coupon:renderCouponGrant,ranking:renderRanking};
   map[activeTab]?.();
 }
 
 // ════════════════════════════════════
 // 🏠 홈
 // ════════════════════════════════════
+function isTeacher(){ return currentUser===TEACHER.name; }
+
 function renderHome(){
-  const d=dep(currentUser);
-  const L=loan(currentUser);
-  const hist=(fbState?.bankHistory?.[currentUser]??[]);
-  const sorted=[...hist].sort((a,b)=>b.ts-a.ts).slice(0,12);
-  const txHtml=sorted.length===0?`<div class="empty-tx">📭 아직 거래 내역이 없어요</div>`
-    :sorted.map(h=>{
-      if(h.type==='send')return txRow('send','↑',`${h.to}에게 송금`,h.ts,`-${fmt(h.amount)}점`);
-      if(h.type==='recv')return txRow('recv','↓',`${h.from}에게서 받음`,h.ts,`+${fmt(h.amount)}점`);
-      if(h.type==='interest')return txRow('interest','💰',`예금 이자 (+${h.weeks}주)`,h.ts,`+${fmt(h.amount)}점`);
-      if(h.type==='loan-receive')return txRow('loan-out','🏛',`대출 실행 (${h.weeks}주)`,h.ts,`+${fmt(h.amount)}점`);
-      if(h.type==='loan-payment')return txRow('loan-pay','📤',`대출 상환 ${h.weekNo}회차`,h.ts,`-${fmt(h.amount)}점`);
-      if(h.type==='loan-complete')return txRow('recv','✅','대출 완납 🎉',h.ts,'');
-      if(h.type==='coupon-buy'){
-        const detail = h.depositUsed > 0 && h.couponUsed > 0 
-          ? `쿠폰 구매: ${h.productName} (예금${fmt(h.depositUsed)}+지원금${fmt(h.couponUsed)})`
-          : h.depositUsed > 0
-          ? `쿠폰 구매: ${h.productName}`
-          : `쿠폰 구매: ${h.productName} (지원금만 사용)`;
-        return txRow('send','🛍️', detail, h.ts, `-${fmt(h.totalAmount)}점`);
-      }
-      if(h.type==='coupon-resell-buy'){
-        const detail = h.depositUsed > 0 && h.couponUsed > 0
-          ? `리셀 구매: ${h.productName} (예금${fmt(h.depositUsed)}+지원금${fmt(h.couponUsed)})`
-          : h.depositUsed > 0
-          ? `리셀 구매: ${h.productName}`
-          : `리셀 구매: ${h.productName} (지원금만 사용)`;
-        return txRow('send','🔄', detail, h.ts, `-${fmt(h.totalAmount)}점`);
-      }
-      if(h.type==='coupon-resell-sell')return txRow('recv','🔄',`리셀 판매: ${h.productName}`,h.ts,`+${fmt(h.amount)}점`);
-      return '';
-    }).join('');
-  const rawLastHome=fbState?.bankInterest?.[currentUser]?.lastApplied;
-  const last=(rawLastHome && rawLastHome > Date.now()-WEEK_MS) ? rawLastHome : Date.now();
-  const msLeft=Math.max(0,last+WEEK_MS-Date.now());
-  const pct=Math.min(100,((WEEK_MS-msLeft)/WEEK_MS*100)).toFixed(0);
-  const dL=Math.floor(msLeft/86400000), hL=Math.floor((msLeft%86400000)/3600000);
-  const loanBadge=L&&L.remaining>0?`<div class="acc-badge red" style="margin-left:8px;">⚠️ 대출 잔액 ${fmt(L.remaining)}점</div>`:'';
+  const d   = dep(currentUser);
+  const cp  = coupon(currentUser);
+  const sv  = stockAsset(currentUser);
+  const tot = totalAsset(currentUser);
+  const L   = loan(currentUser);
+  const hist = fbState?.bankHistory?.[currentUser]??[];
+  const sorted = [...hist].sort((a,b)=>b.ts-a.ts).slice(0,12);
+
+  const txHtml = sorted.length===0
+    ? `<div class="empty-tx">📭 아직 거래 내역이 없어요</div>`
+    : sorted.map(h=>{
+        if(h.type==='send')         return txRow('send','↑',`${h.to}에게 송금`,h.ts,`-${fmt(h.amount)}점`);
+        if(h.type==='recv')         return txRow('recv','↓',`${h.from}에게서 받음`,h.ts,`+${fmt(h.amount)}점`);
+        if(h.type==='interest')     return txRow('interest','💰',`예금 이자 (+${h.weeks}주)`,h.ts,`+${fmt(h.amount)}점`);
+        if(h.type==='loan-receive') return txRow('loan-out','🏛',`대출 실행 (${h.weeks}주)`,h.ts,`+${fmt(h.amount)}점`);
+        if(h.type==='loan-payment') return txRow('loan-pay','📤',`대출 상환 ${h.weekNo}회차`,h.ts,`-${fmt(h.amount)}점`);
+        if(h.type==='loan-complete')return txRow('recv','✅','대출 완납 🎉',h.ts,'');
+        if(h.type==='tax')          return txRow('send','🏛','세금 납부',h.ts,`-${fmt(h.amount)}점`);
+        if(h.type==='tax-income')   return txRow('recv','💰',`세금 수입 (${h.from}명)`,h.ts,`+${fmt(h.amount)}점`);
+        if(h.type==='coupon-grant') return txRow('recv','🎟','쿠폰 구매 지원금 지급',h.ts,`+${fmt(h.amount)}점`);
+        if(h.type==='coupon-use')   return txRow('send','🎟','쿠폰 구매 사용',h.ts,`-${fmt(h.amount)}점`);
+        return '';
+      }).join('');
+
+  const rawLastHome = fbState?.bankInterest?.[currentUser]?.lastApplied;
+  const last  = (rawLastHome && rawLastHome > Date.now()-WEEK_MS) ? rawLastHome : Date.now();
+  const msLeft= Math.max(0, last+WEEK_MS-Date.now());
+  const dL    = Math.floor(msLeft/86400000), hL=Math.floor((msLeft%86400000)/3600000);
+  const loanBadge = L&&L.remaining>0
+    ? `<div class="acc-badge red" style="margin-left:8px;">⚠️ 대출 잔액 ${fmt(L.remaining)}점</div>` : '';
+
+  // 주식 보유 목록
+  const holdings = fbState?.students?.[currentUser]?.holdings??{};
+  const stockRows = Object.entries(holdings)
+    .filter(([t,q])=>q>0)
+    .map(([t,q])=>{
+      const price = fbState?.prices?.[t]??0;
+      return {ticker:t, qty:q, price, val:q*price};
+    }).sort((a,b)=>b.val-a.val);
+
+  const stockDetail = stockRows.length===0
+    ? `<div class="empty-tx" style="padding:20px 0;">보유 주식이 없어요</div>`
+    : `<div class="stock-list">${stockRows.map(s=>`
+        <div class="stock-item">
+          <div class="stock-ticker">${s.ticker}</div>
+          <div class="stock-info">
+            <div class="stock-name">${s.ticker}</div>
+            <div class="stock-qty">${fmt(s.qty)}주 · 주당 ${fmt(s.price)}점</div>
+          </div>
+          <div class="stock-val">
+            <div class="stock-price">${fmt(s.val)}점</div>
+          </div>
+        </div>`).join('')}</div>`;
+
   document.getElementById('main-content').innerHTML=`
-    <div class="account-section">
+    <!-- 계좌 슬라이더 -->
+    <div class="accounts-slider" id="acc-slider">
+      <!-- 카드 1: 예금 계좌 -->
       <div class="account-card">
         <div class="acc-type">GANADI BANK · 입출금 계좌</div>
         <div class="acc-name">${currentUser} <span style="font-size:13px;opacity:.6;">(${gname(currentUser)})</span></div>
         <div class="acc-balance-label">예금 잔액</div>
         <div class="acc-balance">${fmt(d)}<span>점</span></div>
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;position:relative;z-index:1;">
-          <div class="acc-badge green">📈 주 4% 이자 · 다음 이자 ${dL>0?dL+'일 ':''}${hL}시간 후</div>
+          <div class="acc-badge green">📈 주 4% 이자 · ${dL>0?dL+'일 ':''}${hL}시간 후</div>
           ${loanBadge}
         </div>
       </div>
+      <!-- 카드 2: 쿠폰 구매 지원금 -->
+      <div class="account-card coupon">
+        <div class="acc-type">GANADI BANK · 쿠폰 구매 지원금</div>
+        <div class="acc-name">${currentUser}</div>
+        <div class="acc-balance-label">지원금 잔액</div>
+        <div class="acc-balance">${fmt(cp)}<span>점</span></div>
+        <div style="position:relative;z-index:1;margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;">
+          <div class="acc-badge yellow">🎟 쿠폰샵에서만 사용 가능</div>
+          <div class="acc-badge" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.55);font-size:11px;">송금 불가 · 선생님 지급 전용</div>
+        </div>
+      </div>
+      <!-- 카드 3: 주식 계좌 -->
+      <div class="account-card stock" style="cursor:pointer;" onclick="toggleStockDetail()">
+        <div class="acc-type">GANADI BANK · 주식 계좌</div>
+        <div class="acc-name">${currentUser}</div>
+        <div class="acc-balance-label">주식 평가액</div>
+        <div class="acc-balance">${fmt(sv)}<span>점</span></div>
+        <div style="position:relative;z-index:1;margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;">
+          <div class="acc-badge purple">📊 ${stockRows.length}종목 보유 · 탭해서 보기</div>
+        </div>
+      </div>
     </div>
+    <!-- 슬라이더 닷 -->
+    <div class="acc-dots" id="acc-dots">
+      <div class="acc-dot active"></div>
+      <div class="acc-dot"></div>
+      <div class="acc-dot"></div>
+    </div>
+    <!-- 총 자산 요약 -->
+    <div style="margin:12px 20px 0;padding:14px 18px;background:var(--card);border:1px solid var(--border2);border-radius:var(--radius);display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:13px;color:var(--text2);font-weight:600;">총 자산</span>
+      <span style="font-size:20px;font-weight:900;color:var(--text);">${fmt(tot)}<span style="font-size:13px;font-weight:600;opacity:.6;margin-left:4px;">점</span></span>
+    </div>
+    <!-- 주식 상세 (접힘) -->
+    <div id="stock-detail" style="display:none;padding:12px 20px 0;">
+      <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:10px;">📊 보유 주식 내역</div>
+      ${stockDetail}
+    </div>
+
     <div class="quick-menu">
       <button class="quick-btn" onclick="switchTab('transfer')"><div class="quick-icon blue">💸</div><div class="quick-label">송금</div></button>
       <button class="quick-btn" onclick="switchTab('interest')"><div class="quick-icon green">💰</div><div class="quick-label">이자</div></button>
@@ -548,7 +732,21 @@ function renderHome(){
       <div class="section-head"><div class="section-title2">최근 거래내역</div></div>
       <div class="tx-list">${txHtml}</div>
     </div>`;
+
+  // 슬라이더 닷 동기화
+  const slider = document.getElementById('acc-slider');
+  const dots   = document.querySelectorAll('.acc-dot');
+  slider?.addEventListener('scroll', ()=>{
+    const idx = Math.round(slider.scrollLeft / slider.offsetWidth);
+    dots.forEach((d,i)=>d.classList.toggle('active',i===idx));
+  });
 }
+
+window.toggleStockDetail = function(){
+  const el = document.getElementById('stock-detail');
+  if(!el) return;
+  el.style.display = el.style.display==='none' ? 'block' : 'none';
+};
 function txRow(type,icon,label,ts,amt){
   return `<div class="tx-item"><div class="tx-icon ${type}">${icon}</div><div class="tx-info"><div class="tx-name">${label}</div><div class="tx-date">${fmtDate(ts)}</div></div><div class="tx-amount ${type}">${amt}</div></div>`;
 }
@@ -864,19 +1062,22 @@ window.confirmLoan=async function(){
   const rate=loanRate(loanAmt/tot,loanWeeks);
   const now=Date.now();
   try{
-    await runTransaction(ref(db,`state/students/${currentUser}`),cur=>{
-      if(!cur)return cur;
-      cur.deposit=Math.round(((cur.deposit??0)+loanAmt)*100)/100;
-      return cur;
-    });
-    await update(ref(db,`state/bankLoans/${currentUser}`),{
-      principal:loanAmt,remaining:loanAmt,ratePercent:rate,
-      totalWeeks:loanWeeks,paidWeeks:0,repayType:loanType,
-      startedAt:now,lastCharged:now
-    });
+    const snap=await get(ref(db,`state/students/${currentUser}`));
+    const stu=snap.val();
+    if(!stu)return showToast('오류가 발생했습니다','error');
+    const newDeposit=Math.round(((stu.deposit??0)+loanAmt)*100)/100;
     const hist=[...(fbState?.bankHistory?.[currentUser]??[]),
       {type:'loan-receive',amount:loanAmt,weeks:loanWeeks,rate,ts:now}];
-    await runTransaction(ref(db,`state/bankHistory/${currentUser}`),()=>hist);
+    // 한 번의 update()로 deposit + 대출정보 + 거래내역 동시 반영
+    await update(ref(db),{
+      [`state/students/${currentUser}/deposit`]: newDeposit,
+      [`state/bankLoans/${currentUser}`]: {
+        principal:loanAmt,remaining:loanAmt,ratePercent:rate,
+        totalWeeks:loanWeeks,paidWeeks:0,repayType:loanType,
+        startedAt:now,lastCharged:now
+      },
+      [`state/bankHistory/${currentUser}`]: hist,
+    });
     showToast(`🏛 ${fmt(loanAmt)}점 대출 완료!`,'success');
     loanAmt=0;loanSubTab='apply';switchTab('loan');
   }catch(e){showToast('오류가 발생했습니다','error');}
@@ -894,18 +1095,21 @@ window.confirmRepay=async function(){
   const newRem=Math.max(0,L.remaining-row.principal);
   const done=newPaid>=L.totalWeeks||newRem<=0;
   try{
-    await runTransaction(ref(db,`state/students/${currentUser}`),cur=>{
-      if(!cur)return cur;
-      cur.deposit=Math.round(((cur.deposit??0)-row.total)*100)/100;
-      return cur;
-    });
-    await update(ref(db,`state/bankLoans/${currentUser}`),{
-      remaining:done?0:newRem,paidWeeks:newPaid,lastCharged:now
-    });
+    const snap=await get(ref(db,`state/students/${currentUser}`));
+    const stu=snap.val();
+    if(!stu)return showToast('오류가 발생했습니다','error');
+    const newDeposit=Math.round(((stu.deposit??0)-row.total)*100)/100;
     const hist=[...(fbState?.bankHistory?.[currentUser]??[]),
       {type:'loan-payment',amount:row.total,weekNo:newPaid,ts:now}];
     if(done)hist.push({type:'loan-complete',ts:now});
-    await runTransaction(ref(db,`state/bankHistory/${currentUser}`),()=>hist);
+    // 한 번의 update()로 deposit + 대출정보 + 거래내역 동시 반영
+    await update(ref(db),{
+      [`state/students/${currentUser}/deposit`]: newDeposit,
+      [`state/bankLoans/${currentUser}/remaining`]: done?0:newRem,
+      [`state/bankLoans/${currentUser}/paidWeeks`]: newPaid,
+      [`state/bankLoans/${currentUser}/lastCharged`]: now,
+      [`state/bankHistory/${currentUser}`]: hist,
+    });
     showToast(done?'🎉 대출 완납! 고생했어요!':`✅ ${newPaid}회차 상환 완료`,'success');
     switchTab('loan');
   }catch(e){showToast('오류가 발생했습니다','error');}
@@ -916,13 +1120,15 @@ window.confirmRepay=async function(){
 // ════════════════════════════════════
 function renderTransfer(){
   const d=dep(currentUser);
-  const others=ALL_STUDENTS.filter(s=>s.name!==currentUser);
+  const teacherEntry = currentUser===TEACHER.name ? [] : [{name:TEACHER.name, group:0}];
+  const others=[...ALL_STUDENTS.filter(s=>s.name!==currentUser), ...teacherEntry];
   const filtered=searchQuery?others.filter(s=>s.name.includes(searchQuery)):others;
   const recHtml=filtered.map(s=>{
-    const color=GC[s.group-1]||'#4f80ff';
+    const color=s.group===0?'#f5c842':(GC[s.group-1]||'#4f80ff');
+    const groupLabel=s.group===0?'관리자':(GN[s.group]||'');
     return `<div class="recipient-item ${transferTarget===s.name?'selected':''}" onclick="selRecv('${s.name}')">
       <div class="recv-avatar" style="background:linear-gradient(135deg,#1e2a4a,${color})">${init(s.name)}</div>
-      <div class="recv-info"><div class="recv-name">${s.name}</div><div class="recv-group">${GN[s.group]}</div></div>
+      <div class="recv-info"><div class="recv-name">${s.name}</div><div class="recv-group">${groupLabel}</div></div>
       <div class="recv-balance">${fmt(dep(s.name))}점</div>
     </div>`;
   }).join('');
@@ -981,28 +1187,128 @@ window.openTfModal=function(){
       <button class="mbtn-confirm" onclick="confirmTransfer()">송금하기</button>
     </div>`);
 };
+// deposit Firebase 경로
+function depPath(name){ return `state/students/${name}/deposit`; }
+function depRef(name){ return ref(db, depPath(name)); }
+
 window.confirmTransfer=async function(){
   closeModal();
   try{
+    // 보내는 사람 예금 확인 및 차감
     let ok=false;
-    await runTransaction(ref(db,`state/students/${currentUser}`),cur=>{
-      if(!cur)return cur;
-      if((cur.deposit??0)<transferAmount)return;
-      cur.deposit=Math.round((cur.deposit-transferAmount)*100)/100;
-      ok=true;return cur;
+    await runTransaction(depRef(currentUser),cur=>{
+      const d=cur??0;
+      if(d<transferAmount)return; // abort
+      ok=true;
+      return Math.round((d-transferAmount)*100)/100;
     });
     if(!ok)return showToast('예금이 부족합니다','error');
-    await runTransaction(ref(db,`state/students/${transferTarget}`),cur=>{
-      if(!cur)return cur;
-      cur.deposit=Math.round(((cur.deposit??0)+transferAmount)*100)/100;
-      return cur;
-    });
+
+    // 받는 사람 deposit 현재값 조회
     const ts=Date.now();
-    await runTransaction(ref(db,`state/bankHistory/${currentUser}`),cur=>[...(cur??[]),{type:'send',to:transferTarget,amount:transferAmount,ts}]);
-    await runTransaction(ref(db,`state/bankHistory/${transferTarget}`),cur=>[...(cur??[]),{type:'recv',from:currentUser,amount:transferAmount,ts}]);
+    const toSnap=await get(depRef(transferTarget));
+    const toDep=toSnap.val()??0;
+    const toDeposit=Math.round((toDep+transferAmount)*100)/100;
+
+    const fromHist=[...(fbState?.bankHistory?.[currentUser]??[]),
+      {type:'send',to:transferTarget,amount:transferAmount,ts}];
+    const toHist=[...(fbState?.bankHistory?.[transferTarget]??[]),
+      {type:'recv',from:currentUser,amount:transferAmount,ts}];
+
+    await update(ref(db),{
+      [depPath(transferTarget)]: toDeposit,
+      [`state/bankHistory/${currentUser}`]: fromHist,
+      [`state/bankHistory/${transferTarget}`]: toHist,
+    });
+
     showToast(`✅ ${transferTarget}에게 ${fmt(transferAmount)}점 송금 완료!`,'success');
     transferTarget=null;transferAmount=0;switchTab('home');
   }catch(e){showToast('오류가 발생했습니다','error');}
+};
+
+// ════════════════════════════════════
+// 🎟 쿠폰 지원금 지급 (선생님 전용)
+// ════════════════════════════════════
+function renderCouponGrant(){
+  if(!isTeacher()){ switchTab('home'); return; }
+  const rows = ALL_STUDENTS.map(s=>{
+    const bal = fbState?.students?.[s.name]?.couponBalance??0;
+    return `
+      <div class="recipient-item" style="cursor:default;">
+        <div class="recv-avatar" style="background:linear-gradient(135deg,#1e2a4a,${GC[s.group-1]||'#4f80ff'})">${init(s.name)}</div>
+        <div class="recv-info">
+          <div class="recv-name">${s.name}</div>
+          <div class="recv-group">${GN[s.group]} · 현재 <span style="color:var(--green);font-weight:700;">${fmt(bal)}점</span></div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <input type="number" id="cpinp-${s.name}" placeholder="0" min="1"
+            style="width:70px;padding:7px 8px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:13px;font-family:var(--font);outline:none;"
+            onkeydown="if(event.key==='Enter')grantOne('${s.name}')" />
+          <button onclick="grantOne('${s.name}')"
+            style="padding:7px 12px;background:rgba(34,212,160,0.15);border:1px solid rgba(34,212,160,0.3);border-radius:8px;color:var(--green);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">지급</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  const totalBal = ALL_STUDENTS.reduce((s,st)=>s+(fbState?.students?.[st.name]?.couponBalance??0),0);
+
+  document.getElementById('main-content').innerHTML=`
+    <div class="page-wrap">
+      <div>
+        <div class="page-title">🎟 쿠폰 구매 지원금 지급</div>
+        <div class="page-sub">학생들에게 쿠폰샵 전용 지원금을 보내요</div>
+      </div>
+      <div class="form-section">
+        <div style="font-size:14px;font-weight:700;margin-bottom:4px;">전체 일괄 지급</div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:14px;">현재 전체 지원금 잔액 합계: <span style="color:var(--green);font-weight:700;">${fmt(totalBal)}점</span></div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <input type="number" id="cp-all" placeholder="1인당 지급액" min="1"
+            style="flex:1;padding:12px 14px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);font-size:15px;font-family:var(--font);outline:none;"
+            onkeydown="if(event.key==='Enter')grantAll()" />
+          <button onclick="grantAll()" class="primary-btn" style="width:auto;padding:12px 20px;font-size:14px;">전체 지급</button>
+        </div>
+      </div>
+      <div>
+        <label class="form-label">개별 지급</label>
+        <div class="form-card"><div>${rows}</div></div>
+      </div>
+      <div class="info-box green">
+        <span>💡</span>
+        <div>쿠폰 구매 지원금은 <b>가나디쿠폰샵</b>에서만 사용 가능해요. 송금·주식 구매에는 쓸 수 없어요.</div>
+      </div>
+    </div>`;
+}
+
+window.grantOne = async function(name){
+  const inp = document.getElementById('cpinp-'+name);
+  const amount = parseInt(inp?.value);
+  if(!amount||amount<=0) return showToast('지급액을 입력하세요','error');
+  const cur = fbState?.students?.[name]?.couponBalance??0;
+  const hist = [...(fbState?.bankHistory?.[name]??[]),
+    {type:'coupon-grant', amount, ts:Date.now()}];
+  await update(ref(db),{
+    [`state/students/${name}/couponBalance`]: Math.round((cur+amount)*100)/100,
+    [`state/bankHistory/${name}`]: hist,
+  });
+  showToast(`${name}에게 ${fmt(amount)}점 지급 완료!`,'success');
+  if(inp) inp.value='';
+};
+
+window.grantAll = async function(){
+  const amount = parseInt(document.getElementById('cp-all')?.value);
+  if(!amount||amount<=0) return showToast('지급액을 입력하세요','error');
+  if(!confirm(`전체 ${ALL_STUDENTS.length}명에게 ${fmt(amount)}점씩 지급할까요?`)) return;
+  const updates={};
+  const ts=Date.now();
+  ALL_STUDENTS.forEach(s=>{
+    const cur=fbState?.students?.[s.name]?.couponBalance??0;
+    updates[`state/students/${s.name}/couponBalance`]=Math.round((cur+amount)*100)/100;
+    const hist=[...(fbState?.bankHistory?.[s.name]??[]),{type:'coupon-grant',amount,ts}];
+    updates[`state/bankHistory/${s.name}`]=hist;
+  });
+  await update(ref(db),updates);
+  showToast(`전체 ${ALL_STUDENTS.length}명에게 ${fmt(amount)}점 지급 완료!`,'success');
+  renderCouponGrant();
 };
 
 // ════════════════════════════════════

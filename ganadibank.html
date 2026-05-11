@@ -64,19 +64,7 @@ body{overflow-x:hidden;}::-webkit-scrollbar{width:0;}
 .login-select:focus{border-color:var(--accent);}
 .login-btn{width:100%;padding:16px;background:linear-gradient(135deg,#3a6aff,#4f80ff);border:none;border-radius:var(--radius);color:white;font-size:15px;font-weight:700;cursor:pointer;font-family:var(--font);box-shadow:0 4px 20px rgba(79,128,255,0.35);}
 
-/* account card */
 .account-section{padding:20px 20px 0;}
-.account-card{background:linear-gradient(135deg,#1a2f6e 0%,#2a4fa8 50%,#1e3a8a 100%);border-radius:var(--radius-lg);padding:24px;position:relative;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.4);}
-.account-card::before{content:'';position:absolute;top:-40px;right:-40px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,0.04);}
-.account-card::after{content:'';position:absolute;bottom:-60px;left:-30px;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,0.03);}
-.acc-type{font-size:12px;font-weight:600;color:rgba(255,255,255,0.6);letter-spacing:1px;margin-bottom:6px;}
-.acc-name{font-size:18px;font-weight:700;color:white;margin-bottom:20px;}
-.acc-balance-label{font-size:12px;color:rgba(255,255,255,0.55);margin-bottom:6px;}
-.acc-balance{font-size:34px;font-weight:900;color:white;letter-spacing:-1px;line-height:1;position:relative;z-index:1;}
-.acc-balance span{font-size:16px;font-weight:600;opacity:.7;margin-left:4px;}
-.acc-badge{display:inline-flex;align-items:center;gap:5px;margin-top:10px;padding:8px 14px;border-radius:10px;font-size:12px;font-weight:600;position:relative;z-index:1;}
-.acc-badge.green{background:rgba(34,212,160,0.15);border:1px solid rgba(34,212,160,0.3);color:var(--green);}
-.acc-badge.red{background:rgba(255,94,122,0.12);border:1px solid rgba(255,94,122,0.3);color:var(--red);}
 
 /* quick menu */
 .quick-menu{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:16px 20px;}
@@ -524,12 +512,12 @@ async function doLogin(){
   if(name===TEACHER.name){
     if(pw!==TEACHER.password)return showToast('비밀번호가 틀렸습니다 ❌','error');
     currentUser=name;
+    // 선생님 계정이 아예 없을 때만 초기화 (기존 deposit 절대 덮어쓰지 않음)
     if(!fbState?.students?.[name]){
-      await update(ref(db,`state/students/${name}`),{deposit:0,holdings:{},history:[],group:0});
+      await update(ref(db,`state/students/${name}`),{holdings:{},history:[],group:0});
     }
     document.getElementById('app-header').style.display='flex';
     document.getElementById('bottom-nav').style.display='flex';
-    // 선생님 전용 탭 표시
     const couponNav=document.getElementById('nav-coupon');
     if(couponNav) couponNav.style.display='flex';
     switchTab('home'); return;

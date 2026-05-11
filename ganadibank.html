@@ -501,22 +501,35 @@ function renderHome(){
       if(h.type==='loan-payment')return txRow('loan-pay','📤',`대출 상환 ${h.weekNo}회차`,h.ts,`-${fmt(h.amount)}점`);
       if(h.type==='loan-complete')return txRow('recv','✅','대출 완납 🎉',h.ts,'');
       if(h.type==='coupon-buy'){
-        const detail = h.depositUsed > 0 && h.couponUsed > 0 
-          ? `쿠폰 구매: ${h.productName} (예금${fmt(h.depositUsed)}+지원금${fmt(h.couponUsed)})`
-          : h.depositUsed > 0
-          ? `쿠폰 구매: ${h.productName}`
-          : `쿠폰 구매: ${h.productName} (지원금만 사용)`;
-        return txRow('send','🛍️', detail, h.ts, `-${fmt(h.totalAmount)}점`);
+        const amount = h.totalAmount || h.amount;
+        if(h.depositUsed !== undefined && h.couponUsed !== undefined){
+          const detail = h.depositUsed > 0 && h.couponUsed > 0 
+            ? `쿠폰 구매: ${h.productName} (예금${fmt(h.depositUsed)}+지원금${fmt(h.couponUsed)})`
+            : h.depositUsed > 0
+            ? `쿠폰 구매: ${h.productName}`
+            : `쿠폰 구매: ${h.productName} (지원금만 사용)`;
+          return txRow('send','🛍️', detail, h.ts, `-${fmt(amount)}점`);
+        }
+        return txRow('send','🛍️',`쿠폰 구매: ${h.productName}`,h.ts,`-${fmt(amount)}점`);
       }
       if(h.type==='coupon-resell-buy'){
-        const detail = h.depositUsed > 0 && h.couponUsed > 0
-          ? `리셀 구매: ${h.productName} (예금${fmt(h.depositUsed)}+지원금${fmt(h.couponUsed)})`
-          : h.depositUsed > 0
-          ? `리셀 구매: ${h.productName}`
-          : `리셀 구매: ${h.productName} (지원금만 사용)`;
-        return txRow('send','🔄', detail, h.ts, `-${fmt(h.totalAmount)}점`);
+        const amount = h.totalAmount || h.amount;
+        if(h.depositUsed !== undefined && h.couponUsed !== undefined){
+          const detail = h.depositUsed > 0 && h.couponUsed > 0
+            ? `리셀 구매: ${h.productName} (예금${fmt(h.depositUsed)}+지원금${fmt(h.couponUsed)})`
+            : h.depositUsed > 0
+            ? `리셀 구매: ${h.productName}`
+            : `리셀 구매: ${h.productName} (지원금만 사용)`;
+          return txRow('send','🔄', detail, h.ts, `-${fmt(amount)}점`);
+        }
+        return txRow('send','🔄',`리셀 구매: ${h.productName}`,h.ts,`-${fmt(amount)}점`);
       }
-      if(h.type==='coupon-resell-sell')return txRow('recv','🔄',`리셀 판매: ${h.productName} (${h.toStudent}에게)`,h.ts,`+${fmt(h.amount)}점`);
+      if(h.type==='coupon-resell-sell'){
+        if(h.toStudent){
+          return txRow('recv','🔄',`리셀 판매: ${h.productName} (${h.toStudent}에게)`,h.ts,`+${fmt(h.amount)}점`);
+        }
+        return txRow('recv','🔄',`리셀 판매: ${h.productName}`,h.ts,`+${fmt(h.amount)}점`);
+      }
       return '';
     }).join('');
   const rawLastHome=fbState?.bankInterest?.[currentUser]?.lastApplied;

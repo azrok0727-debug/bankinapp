@@ -89,6 +89,37 @@ body{overflow-x:hidden;}::-webkit-scrollbar{width:0;}
 .quick-icon.red{background:rgba(255,94,122,0.12);}
 .quick-label{font-size:12px;font-weight:600;color:var(--text);}
 
+/* 계좌 슬라이더 */
+.accounts-slider{display:flex;gap:12px;padding:20px 20px 0;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.accounts-slider::-webkit-scrollbar{display:none;}
+.account-card{min-width:calc(100% - 40px);scroll-snap-align:start;background:linear-gradient(135deg,#1a2f6e 0%,#2a4fa8 50%,#1e3a8a 100%);border-radius:var(--radius-lg);padding:24px;position:relative;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.4);flex-shrink:0;}
+.account-card.coupon{background:linear-gradient(135deg,#1a3a2a 0%,#1e6644 50%,#0d4a2e 100%);}
+.account-card.stock{background:linear-gradient(135deg,#2a1a4a 0%,#4a2a8a 50%,#1e0a5a 100%);}
+.account-card::before{content:'';position:absolute;top:-40px;right:-40px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,0.04);}
+.account-card::after{content:'';position:absolute;bottom:-60px;left:-30px;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,0.03);}
+.acc-type{font-size:12px;font-weight:600;color:rgba(255,255,255,0.6);letter-spacing:1px;margin-bottom:6px;}
+.acc-name{font-size:18px;font-weight:700;color:white;margin-bottom:20px;}
+.acc-balance-label{font-size:12px;color:rgba(255,255,255,0.55);margin-bottom:6px;}
+.acc-balance{font-size:34px;font-weight:900;color:white;letter-spacing:-1px;line-height:1;position:relative;z-index:1;}
+.acc-balance span{font-size:16px;font-weight:600;opacity:.7;margin-left:4px;}
+.acc-badge{display:inline-flex;align-items:center;gap:5px;margin-top:10px;padding:8px 14px;border-radius:10px;font-size:12px;font-weight:600;position:relative;z-index:1;}
+.acc-badge.green{background:rgba(34,212,160,0.15);border:1px solid rgba(34,212,160,0.3);color:var(--green);}
+.acc-badge.red{background:rgba(255,94,122,0.12);border:1px solid rgba(255,94,122,0.3);color:var(--red);}
+.acc-badge.yellow{background:rgba(245,200,66,0.15);border:1px solid rgba(245,200,66,0.3);color:var(--gold);}
+.acc-badge.purple{background:rgba(167,139,250,0.15);border:1px solid rgba(167,139,250,0.3);color:var(--purple);}
+.acc-dots{display:flex;gap:6px;justify-content:center;padding:10px 0 0;}
+.acc-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.2);transition:all .2s;}
+.acc-dot.active{background:white;width:18px;border-radius:3px;}
+/* 주식 상세 */
+.stock-list{display:flex;flex-direction:column;gap:8px;}
+.stock-item{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);}
+.stock-ticker{font-size:13px;font-weight:800;color:var(--accent);width:48px;flex-shrink:0;}
+.stock-info{flex:1;}
+.stock-name{font-size:13px;font-weight:600;}
+.stock-qty{font-size:12px;color:var(--text3);margin-top:2px;}
+.stock-val{text-align:right;}
+.stock-price{font-size:14px;font-weight:700;}
+.stock-change{font-size:11px;color:var(--text3);}
 /* bottom nav */
 .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--card);border-top:1px solid var(--border2);display:flex;padding:0 6px;padding-bottom:env(safe-area-inset-bottom,0);z-index:100;}
 .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 4px;background:none;border:none;cursor:pointer;font-family:var(--font);gap:4px;}
@@ -368,13 +399,21 @@ const grp  = name => ALL_STUDENTS.find(s=>s.name===name)?.group??0;
 const gname= name => {const g=grp(name);return g?GN[g]:'';}
 const gcol = name => {const g=grp(name);return g?GC[g-1]:'#4f80ff';}
 const init = name => name?.[0]??'?';
-const loan = name => fbState?.bankLoans?.[name]??null;
+const loan   = name => fbState?.bankLoans?.[name]??null;
+const coupon = name => fbState?.students?.[name]?.couponBalance??0;
+function stockAsset(name){
+  const stu=fbState?.students?.[name];
+  if(!stu)return 0;
+  let sv=0;
+  for(const[t,q]of Object.entries(stu.holdings??{})){if(q&&q>0)sv+=q*(fbState?.prices?.[t]??0);}
+  return sv;
+}
 function totalAsset(name){
   const stu=fbState?.students?.[name];
   if(!stu)return 0;
   let sv=0;
-  for(const[t,q]of Object.entries(stu.holdings??{})){if(q)sv+=q*(fbState?.prices?.[t]??0);}
-  return (stu.deposit??0)+sv;
+  for(const[t,q]of Object.entries(stu.holdings??{})){if(q&&q>0)sv+=q*(fbState?.prices?.[t]??0);}
+  return (stu.deposit??0)+sv+(stu.couponBalance??0);
 }
 function fmtDate(ts){
   const d=new Date(ts);
@@ -570,41 +609,113 @@ function renderCurrentTab(){
 function isTeacher(){ return currentUser===TEACHER.name; }
 
 function renderHome(){
-  const d=dep(currentUser);
-  const L=loan(currentUser);
-  const hist=(fbState?.bankHistory?.[currentUser]??[]);
-  const sorted=[...hist].sort((a,b)=>b.ts-a.ts).slice(0,12);
-  const txHtml=sorted.length===0?`<div class="empty-tx">📭 아직 거래 내역이 없어요</div>`
-    :sorted.map(h=>{
-      if(h.type==='send')return txRow('send','↑',`${h.to}에게 송금`,h.ts,`-${fmt(h.amount)}점`);
-      if(h.type==='recv')return txRow('recv','↓',`${h.from}에게서 받음`,h.ts,`+${fmt(h.amount)}점`);
-      if(h.type==='interest')return txRow('interest','💰',`예금 이자 (+${h.weeks}주)`,h.ts,`+${fmt(h.amount)}점`);
-      if(h.type==='loan-receive')return txRow('loan-out','🏛',`대출 실행 (${h.weeks}주)`,h.ts,`+${fmt(h.amount)}점`);
-      if(h.type==='loan-payment')return txRow('loan-pay','📤',`대출 상환 ${h.weekNo}회차`,h.ts,`-${fmt(h.amount)}점`);
-      if(h.type==='loan-complete')return txRow('recv','✅','대출 완납 🎉',h.ts,'');
-      if(h.type==='tax')return txRow('send','🏛','세금 납부',h.ts,`-${fmt(h.amount)}점`);
-      if(h.type==='tax-income')return txRow('recv','💰',`세금 수입 (${h.from}명)`,h.ts,`+${fmt(h.amount)}점`);
-      return '';
-    }).join('');
-  const rawLastHome=fbState?.bankInterest?.[currentUser]?.lastApplied;
-  const last=(rawLastHome && rawLastHome > Date.now()-WEEK_MS) ? rawLastHome : Date.now();
-  const msLeft=Math.max(0,last+WEEK_MS-Date.now());
-  const pct=Math.min(100,((WEEK_MS-msLeft)/WEEK_MS*100)).toFixed(0);
-  const dL=Math.floor(msLeft/86400000), hL=Math.floor((msLeft%86400000)/3600000);
-  const loanBadge=L&&L.remaining>0?`<div class="acc-badge red" style="margin-left:8px;">⚠️ 대출 잔액 ${fmt(L.remaining)}점</div>`:'';
+  const d   = dep(currentUser);
+  const cp  = coupon(currentUser);
+  const sv  = stockAsset(currentUser);
+  const tot = totalAsset(currentUser);
+  const L   = loan(currentUser);
+  const hist = fbState?.bankHistory?.[currentUser]??[];
+  const sorted = [...hist].sort((a,b)=>b.ts-a.ts).slice(0,12);
+
+  const txHtml = sorted.length===0
+    ? `<div class="empty-tx">📭 아직 거래 내역이 없어요</div>`
+    : sorted.map(h=>{
+        if(h.type==='send')         return txRow('send','↑',`${h.to}에게 송금`,h.ts,`-${fmt(h.amount)}점`);
+        if(h.type==='recv')         return txRow('recv','↓',`${h.from}에게서 받음`,h.ts,`+${fmt(h.amount)}점`);
+        if(h.type==='interest')     return txRow('interest','💰',`예금 이자 (+${h.weeks}주)`,h.ts,`+${fmt(h.amount)}점`);
+        if(h.type==='loan-receive') return txRow('loan-out','🏛',`대출 실행 (${h.weeks}주)`,h.ts,`+${fmt(h.amount)}점`);
+        if(h.type==='loan-payment') return txRow('loan-pay','📤',`대출 상환 ${h.weekNo}회차`,h.ts,`-${fmt(h.amount)}점`);
+        if(h.type==='loan-complete')return txRow('recv','✅','대출 완납 🎉',h.ts,'');
+        if(h.type==='tax')          return txRow('send','🏛','세금 납부',h.ts,`-${fmt(h.amount)}점`);
+        if(h.type==='tax-income')   return txRow('recv','💰',`세금 수입 (${h.from}명)`,h.ts,`+${fmt(h.amount)}점`);
+        if(h.type==='coupon-grant') return txRow('recv','🎟','쿠폰 구매 지원금 지급',h.ts,`+${fmt(h.amount)}점`);
+        if(h.type==='coupon-use')   return txRow('send','🎟','쿠폰 구매 사용',h.ts,`-${fmt(h.amount)}점`);
+        return '';
+      }).join('');
+
+  const rawLastHome = fbState?.bankInterest?.[currentUser]?.lastApplied;
+  const last  = (rawLastHome && rawLastHome > Date.now()-WEEK_MS) ? rawLastHome : Date.now();
+  const msLeft= Math.max(0, last+WEEK_MS-Date.now());
+  const dL    = Math.floor(msLeft/86400000), hL=Math.floor((msLeft%86400000)/3600000);
+  const loanBadge = L&&L.remaining>0
+    ? `<div class="acc-badge red" style="margin-left:8px;">⚠️ 대출 잔액 ${fmt(L.remaining)}점</div>` : '';
+
+  // 주식 보유 목록
+  const holdings = fbState?.students?.[currentUser]?.holdings??{};
+  const stockRows = Object.entries(holdings)
+    .filter(([t,q])=>q>0)
+    .map(([t,q])=>{
+      const price = fbState?.prices?.[t]??0;
+      return {ticker:t, qty:q, price, val:q*price};
+    }).sort((a,b)=>b.val-a.val);
+
+  const stockDetail = stockRows.length===0
+    ? `<div class="empty-tx" style="padding:20px 0;">보유 주식이 없어요</div>`
+    : `<div class="stock-list">${stockRows.map(s=>`
+        <div class="stock-item">
+          <div class="stock-ticker">${s.ticker}</div>
+          <div class="stock-info">
+            <div class="stock-name">${s.ticker}</div>
+            <div class="stock-qty">${fmt(s.qty)}주 · 주당 ${fmt(s.price)}점</div>
+          </div>
+          <div class="stock-val">
+            <div class="stock-price">${fmt(s.val)}점</div>
+          </div>
+        </div>`).join('')}</div>`;
+
   document.getElementById('main-content').innerHTML=`
-    <div class="account-section">
+    <!-- 계좌 슬라이더 -->
+    <div class="accounts-slider" id="acc-slider">
+      <!-- 카드 1: 예금 계좌 -->
       <div class="account-card">
         <div class="acc-type">GANADI BANK · 입출금 계좌</div>
         <div class="acc-name">${currentUser} <span style="font-size:13px;opacity:.6;">(${gname(currentUser)})</span></div>
         <div class="acc-balance-label">예금 잔액</div>
         <div class="acc-balance">${fmt(d)}<span>점</span></div>
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;position:relative;z-index:1;">
-          <div class="acc-badge green">📈 주 4% 이자 · 다음 이자 ${dL>0?dL+'일 ':''}${hL}시간 후</div>
+          <div class="acc-badge green">📈 주 4% 이자 · ${dL>0?dL+'일 ':''}${hL}시간 후</div>
           ${loanBadge}
         </div>
       </div>
+      <!-- 카드 2: 쿠폰 구매 지원금 -->
+      <div class="account-card coupon">
+        <div class="acc-type">GANADI BANK · 쿠폰 구매 지원금</div>
+        <div class="acc-name">${currentUser}</div>
+        <div class="acc-balance-label">지원금 잔액</div>
+        <div class="acc-balance">${fmt(cp)}<span>점</span></div>
+        <div style="position:relative;z-index:1;margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;">
+          <div class="acc-badge yellow">🎟 쿠폰샵에서만 사용 가능</div>
+          <div class="acc-badge" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.55);font-size:11px;">송금 불가 · 선생님 지급 전용</div>
+        </div>
+      </div>
+      <!-- 카드 3: 주식 계좌 -->
+      <div class="account-card stock" style="cursor:pointer;" onclick="toggleStockDetail()">
+        <div class="acc-type">GANADI BANK · 주식 계좌</div>
+        <div class="acc-name">${currentUser}</div>
+        <div class="acc-balance-label">주식 평가액</div>
+        <div class="acc-balance">${fmt(sv)}<span>점</span></div>
+        <div style="position:relative;z-index:1;margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;">
+          <div class="acc-badge purple">📊 ${stockRows.length}종목 보유 · 탭해서 보기</div>
+        </div>
+      </div>
     </div>
+    <!-- 슬라이더 닷 -->
+    <div class="acc-dots" id="acc-dots">
+      <div class="acc-dot active"></div>
+      <div class="acc-dot"></div>
+      <div class="acc-dot"></div>
+    </div>
+    <!-- 총 자산 요약 -->
+    <div style="margin:12px 20px 0;padding:14px 18px;background:var(--card);border:1px solid var(--border2);border-radius:var(--radius);display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:13px;color:var(--text2);font-weight:600;">총 자산</span>
+      <span style="font-size:20px;font-weight:900;color:var(--text);">${fmt(tot)}<span style="font-size:13px;font-weight:600;opacity:.6;margin-left:4px;">점</span></span>
+    </div>
+    <!-- 주식 상세 (접힘) -->
+    <div id="stock-detail" style="display:none;padding:12px 20px 0;">
+      <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:10px;">📊 보유 주식 내역</div>
+      ${stockDetail}
+    </div>
+
     <div class="quick-menu">
       <button class="quick-btn" onclick="switchTab('transfer')"><div class="quick-icon blue">💸</div><div class="quick-label">송금</div></button>
       <button class="quick-btn" onclick="switchTab('interest')"><div class="quick-icon green">💰</div><div class="quick-label">이자</div></button>
@@ -615,7 +726,21 @@ function renderHome(){
       <div class="section-head"><div class="section-title2">최근 거래내역</div></div>
       <div class="tx-list">${txHtml}</div>
     </div>`;
+
+  // 슬라이더 닷 동기화
+  const slider = document.getElementById('acc-slider');
+  const dots   = document.querySelectorAll('.acc-dot');
+  slider?.addEventListener('scroll', ()=>{
+    const idx = Math.round(slider.scrollLeft / slider.offsetWidth);
+    dots.forEach((d,i)=>d.classList.toggle('active',i===idx));
+  });
 }
+
+window.toggleStockDetail = function(){
+  const el = document.getElementById('stock-detail');
+  if(!el) return;
+  el.style.display = el.style.display==='none' ? 'block' : 'none';
+};
 function txRow(type,icon,label,ts,amt){
   return `<div class="tx-item"><div class="tx-icon ${type}">${icon}</div><div class="tx-info"><div class="tx-name">${label}</div><div class="tx-date">${fmtDate(ts)}</div></div><div class="tx-amount ${type}">${amt}</div></div>`;
 }

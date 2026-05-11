@@ -1259,13 +1259,19 @@ function renderCouponGrant(){
         <div class="page-sub">학생들에게 쿠폰샵 전용 지원금을 보내요</div>
       </div>
       <div class="form-section">
-        <div style="font-size:14px;font-weight:700;margin-bottom:4px;">전체 일괄 지급</div>
+        <div style="font-size:14px;font-weight:700;margin-bottom:4px;">일괄 지급</div>
         <div style="font-size:12px;color:var(--text3);margin-bottom:14px;">현재 전체 지원금 잔액 합계: <span style="color:var(--green);font-weight:700;">${fmt(totalBal)}점</span></div>
-        <div style="display:flex;gap:10px;align-items:center;">
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
           <input type="number" id="cp-all" placeholder="1인당 지급액" min="1"
-            style="flex:1;padding:12px 14px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);font-size:15px;font-family:var(--font);outline:none;"
-            onkeydown="if(event.key==='Enter')grantAll()" />
-          <button onclick="grantAll()" class="primary-btn" style="width:auto;padding:12px 20px;font-size:14px;">전체 지급</button>
+            style="flex:1;padding:12px 14px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);font-size:15px;font-family:var(--font);outline:none;" />
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="grantAll(false)" class="primary-btn" style="flex:1;padding:12px;font-size:13px;">
+            👥 전체 지급<br><span style="font-size:11px;opacity:.7;">${ALL_STUDENTS.length}명</span>
+          </button>
+          <button onclick="grantAll(true)" class="primary-btn" style="flex:1;padding:12px;font-size:13px;background:linear-gradient(135deg,#1a6644,#22d4a0);box-shadow:0 4px 20px rgba(34,212,160,0.3);">
+            🎯 1만점 미만만<br><span style="font-size:11px;opacity:.8;">${ALL_STUDENTS.filter(s=>totalAsset(s.name)<10000).length}명 해당</span>
+          </button>
         </div>
       </div>
       <div>
@@ -1294,20 +1300,25 @@ window.grantOne = async function(name){
   if(inp) inp.value='';
 };
 
-window.grantAll = async function(){
+window.grantAll = async function(underOnly=false){
   const amount = parseInt(document.getElementById('cp-all')?.value);
   if(!amount||amount<=0) return showToast('지급액을 입력하세요','error');
-  if(!confirm(`전체 ${ALL_STUDENTS.length}명에게 ${fmt(amount)}점씩 지급할까요?`)) return;
+  const targets = underOnly
+    ? ALL_STUDENTS.filter(s=>totalAsset(s.name)<10000)
+    : ALL_STUDENTS;
+  if(targets.length===0) return showToast('해당하는 학생이 없어요','info');
+  const label = underOnly ? `총 자산 1만점 미만 ${targets.length}명` : `전체 ${targets.length}명`;
+  if(!confirm(`${label}에게 ${fmt(amount)}점씩 지급할까요?`)) return;
   const updates={};
   const ts=Date.now();
-  ALL_STUDENTS.forEach(s=>{
+  targets.forEach(s=>{
     const cur=fbState?.students?.[s.name]?.couponBalance??0;
     updates[`state/students/${s.name}/couponBalance`]=Math.round((cur+amount)*100)/100;
     const hist=[...(fbState?.bankHistory?.[s.name]??[]),{type:'coupon-grant',amount,ts}];
     updates[`state/bankHistory/${s.name}`]=hist;
   });
   await update(ref(db),updates);
-  showToast(`전체 ${ALL_STUDENTS.length}명에게 ${fmt(amount)}점 지급 완료!`,'success');
+  showToast(`${label}에게 ${fmt(amount)}점 지급 완료!`,'success');
   renderCouponGrant();
 };
 

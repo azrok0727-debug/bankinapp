@@ -371,7 +371,8 @@ const TEACHER = { name:'김민재 선생님', password:'teacher2024', group:0 };
 // ── 앱 상태 ──────────────────────────────────────────────
 let fbState=null, currentUser=null, activeTab='home';
 let loginView='login'; // 'login' | 'changepw'
-let transferTarget=null, transferAmount=0, searchQuery='';
+let transferTarget=null, transferAmount=0, searchQuery='', transferNote='';
+let bulkMode=false, bulkTargets=new Set();
 let loanAmt=0, loanWeeks=1, loanType='equal', loanSubTab='apply';
 
 // ── Firebase ─────────────────────────────────────────────
@@ -575,7 +576,7 @@ window.doChangePw=async function(){
 window.doLogout=()=>{
   if(!confirm('로그아웃하시겠습니까?'))return;
   currentUser=null;activeTab='home';loginView='login';
-  transferTarget=null;transferAmount=0;
+  transferTarget=null;transferAmount=0;transferNote='';bulkMode=false;bulkTargets=new Set();
   document.getElementById('app-header').style.display='none';
   document.getElementById('bottom-nav').style.display='none';
   renderLogin();
@@ -1111,28 +1112,53 @@ function renderTransfer(){
   const teacherEntry = currentUser===TEACHER.name ? [] : [{name:TEACHER.name, group:0}];
   const others=[...ALL_STUDENTS.filter(s=>s.name!==currentUser), ...teacherEntry];
   const filtered=searchQuery?others.filter(s=>s.name.includes(searchQuery)):others;
+
   const recHtml=filtered.map(s=>{
     const color=s.group===0?'#f5c842':(GC[s.group-1]||'#4f80ff');
     const groupLabel=s.group===0?'관리자':(GN[s.group]||'');
-    return `<div class="recipient-item ${transferTarget===s.name?'selected':''}" onclick="selRecv('${s.name}')">
+    const isSel = bulkMode ? bulkTargets.has(s.name) : transferTarget===s.name;
+    return `<div class="recipient-item ${isSel?'selected':''}" onclick="${bulkMode?`toggleBulk('${s.name}')`:`selRecv('${s.name}')`}">
       <div class="recv-avatar" style="background:linear-gradient(135deg,#1e2a4a,${color})">${init(s.name)}</div>
       <div class="recv-info"><div class="recv-name">${s.name}</div><div class="recv-group">${groupLabel}</div></div>
-      <div class="recv-balance">${fmt(dep(s.name))}점</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="recv-balance">${fmt(dep(s.name))}점</div>
+        ${bulkMode?`<div style="width:20px;height:20px;border-radius:50%;border:2px solid ${isSel?'var(--accent)':'var(--border2)'};background:${isSel?'var(--accent)':'transparent'};display:flex;align-items:center;justify-content:center;font-size:11px;color:white;">${isSel?'✓':''}</div>`:''}
+      </div>
     </div>`;
   }).join('');
+
+  const bulkCount = bulkTargets.size;
+  const bulkTotal = bulkCount * transferAmount;
+  const btnDisabled = bulkMode
+    ? (bulkCount===0||transferAmount<=0||bulkTotal>d)
+    : (!transferTarget||transferAmount<=0);
+  const btnLabel = bulkMode
+    ? (bulkCount>0&&transferAmount>0 ? `${bulkCount}명에게 각 ${fmt(transferAmount)}점 (총 ${fmt(bulkTotal)}점)` : '받는 사람과 금액을 선택하세요')
+    : (transferTarget ? `${transferTarget}에게 ${fmt(transferAmount)}점 송금` : '받는 사람과 금액을 선택하세요');
+
   document.getElementById('main-content').innerHTML=`
     <div class="page-wrap">
-      <div><div class="page-title">💸 송금</div><div class="page-sub">예금에 있는 점수만 보낼 수 있어요</div></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div><div class="page-title">💸 송금</div><div class="page-sub">예금에 있는 점수만 보낼 수 있어요</div></div>
+        <button onclick="toggleBulkMode()" style="padding:8px 14px;border-radius:12px;border:1px solid ${bulkMode?'var(--accent)':'var(--border2)'};background:${bulkMode?'rgba(79,128,255,0.15)':'transparent'};color:${bulkMode?'var(--accent)':'var(--text2)'};font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">
+          ${bulkMode?`✅ 일괄 (${bulkCount}명)`:'👥 일괄송금'}
+        </button>
+      </div>
       <div>
-        <label class="form-label">받는 사람</label>
+        <label class="form-label">${bulkMode?`받는 사람 선택 (여러 명 가능 · ${bulkCount}명 선택됨)`:'받는 사람'}</label>
         <div class="search-wrap" style="margin-bottom:10px;"><span>🔍</span><input placeholder="이름 검색..." id="si" value="${searchQuery}" oninput="onSQ(this.value)" autocomplete="off"/></div>
+        ${bulkMode?`<div style="display:flex;gap:6px;margin-bottom:8px;">
+          <button onclick="selectAllRecv()" style="flex:1;padding:8px;border-radius:10px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);">전체 선택</button>
+          <button onclick="clearAllRecv()" style="flex:1;padding:8px;border-radius:10px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);">전체 해제</button>
+        </div>`:''}
         <div class="form-card"><div>${recHtml||'<div class="empty-tx">검색 결과 없음</div>'}</div></div>
       </div>
       <div>
-        <label class="form-label">금액</label>
+        <label class="form-label">금액 ${bulkMode&&transferAmount>0?`<span style="color:var(--text3);font-weight:500;">(1인당 · 합계 ${fmt(bulkTotal)}점)</span>`:''}</label>
         <div class="amount-input-wrap">
           <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px;">
-            <input class="amount-input" type="number" id="ai" placeholder="0" min="1" max="${Math.floor(d)}" value="${transferAmount||''}" oninput="onTA(this.value)"/>
+            <input class="amount-input" type="number" id="ai" placeholder="0" min="1"
+              value="${transferAmount||''}" oninput="onTA(this.value)"/>
             <span class="amount-unit">점</span>
           </div>
           <div class="amount-avail">예금 <strong>${fmt(d)}점</strong> 가능</div>
@@ -1142,38 +1168,101 @@ function renderTransfer(){
           </div>
         </div>
       </div>
-      <button class="primary-btn" id="btn-tf" onclick="openTfModal()" ${!transferTarget||transferAmount<=0?'disabled':''}>
-        ${transferTarget?`${transferTarget}에게 ${fmt(transferAmount)}점 송금`:'받는 사람과 금액을 선택하세요'}
+      <div>
+        <label class="form-label">메모 <span style="color:var(--text3);font-weight:500;">(선택 · 거래내역에 표시됩니다)</span></label>
+        <div class="search-wrap">
+          <span>✏️</span>
+          <input placeholder="예) 생일 선물, 모둠 활동비..." id="note-input"
+            value="${transferNote||''}" maxlength="30"
+            oninput="transferNote=this.value" autocomplete="off"/>
+        </div>
+      </div>
+      <button class="primary-btn" id="btn-tf" onclick="openTfModal()" ${btnDisabled?'disabled':''}>
+        ${btnLabel}
       </button>
     </div>`;
 }
 window.onSQ=v=>{searchQuery=v;renderTransfer();setTimeout(()=>document.getElementById('si')?.focus(),10);};
 window.selRecv=n=>{transferTarget=(transferTarget===n)?null:n;renderTransfer();};
+window.toggleBulkMode=function(){
+  bulkMode=!bulkMode;
+  bulkTargets=new Set();
+  transferTarget=null;
+  renderTransfer();
+};
+window.toggleBulk=function(name){
+  if(bulkTargets.has(name)) bulkTargets.delete(name);
+  else bulkTargets.add(name);
+  renderTransfer();
+  setTimeout(()=>document.getElementById('si')?.focus&&null,0);
+};
+window.selectAllRecv=function(){
+  const teacherEntry=currentUser===TEACHER.name?[]:[{name:TEACHER.name,group:0}];
+  const others=[...ALL_STUDENTS.filter(s=>s.name!==currentUser),...teacherEntry];
+  const filtered=searchQuery?others.filter(s=>s.name.includes(searchQuery)):others;
+  filtered.forEach(s=>bulkTargets.add(s.name));
+  renderTransfer();
+};
+window.clearAllRecv=function(){ bulkTargets=new Set(); renderTransfer(); };
 window.onTA=v=>{
   const max=Math.floor(dep(currentUser));
   transferAmount=Math.min(Math.max(0,parseInt(v)||0),max);
   const b=document.getElementById('btn-tf');
-  if(b){b.disabled=!transferTarget||transferAmount<=0;b.textContent=(transferTarget&&transferAmount>0)?`${transferTarget}에게 ${fmt(transferAmount)}점 송금`:'받는 사람과 금액을 선택하세요';}
+  if(b){
+    const d=dep(currentUser);
+    if(bulkMode){
+      const tot=bulkTargets.size*transferAmount;
+      b.disabled=bulkTargets.size===0||transferAmount<=0||tot>d;
+      b.textContent=(bulkTargets.size>0&&transferAmount>0)?`${bulkTargets.size}명에게 각 ${fmt(transferAmount)}점 (총 ${fmt(tot)}점)`:'받는 사람과 금액을 선택하세요';
+    } else {
+      b.disabled=!transferTarget||transferAmount<=0;
+      b.textContent=(transferTarget&&transferAmount>0)?`${transferTarget}에게 ${fmt(transferAmount)}점 송금`:'받는 사람과 금액을 선택하세요';
+    }
+  }
 };
 window.addTA=v=>{transferAmount=Math.min(transferAmount+v,Math.floor(dep(currentUser)));const i=document.getElementById('ai');if(i)i.value=transferAmount;onTA(transferAmount);};
 window.maxTA=()=>{transferAmount=Math.floor(dep(currentUser));const i=document.getElementById('ai');if(i)i.value=transferAmount;onTA(transferAmount);};
 window.openTfModal=function(){
   const d=dep(currentUser);
-  if(!transferTarget)return showToast('받는 사람을 선택하세요','error');
-  if(transferAmount<=0)return showToast('금액을 입력하세요','error');
-  if(transferAmount>Math.floor(d))return showToast('예금이 부족합니다','error');
-  showModal(`
-    <div class="modal-handle"></div>
-    <div class="modal-title">송금 확인</div>
-    <div class="modal-sub">아래 내용을 확인해주세요</div>
-    <div class="mrow"><span class="mrow-label">보내는 사람</span><span class="mrow-value">${currentUser}</span></div>
-    <div class="mrow"><span class="mrow-label">받는 사람</span><span class="mrow-value">${transferTarget} (${gname(transferTarget)})</span></div>
-    <div class="mrow"><span class="mrow-label">금액</span><span class="mrow-value accent">${fmt(transferAmount)}점</span></div>
-    <div class="mrow"><span class="mrow-label">송금 후 예금</span><span class="mrow-value">${fmt(d-transferAmount)}점</span></div>
-    <div class="modal-btns">
-      <button class="mbtn-cancel" onclick="closeModal()">취소</button>
-      <button class="mbtn-confirm" onclick="confirmTransfer()">송금하기</button>
-    </div>`);
+  const note=transferNote.trim();
+  if(bulkMode){
+    if(bulkTargets.size===0)return showToast('받는 사람을 선택하세요','error');
+    if(transferAmount<=0)return showToast('금액을 입력하세요','error');
+    const tot=bulkTargets.size*transferAmount;
+    if(tot>d)return showToast(`예금이 부족합니다 (필요: ${fmt(tot)}점)`,'error');
+    const names=[...bulkTargets].join(', ');
+    showModal(`
+      <div class="modal-handle"></div>
+      <div class="modal-title">일괄 송금 확인</div>
+      <div class="modal-sub">아래 내용을 확인해주세요</div>
+      <div class="mrow"><span class="mrow-label">받는 사람</span><span class="mrow-value" style="font-size:12px;text-align:right;max-width:60%;">${names}</span></div>
+      <div class="mrow"><span class="mrow-label">1인당 금액</span><span class="mrow-value accent">${fmt(transferAmount)}점</span></div>
+      <div class="mrow"><span class="mrow-label">인원</span><span class="mrow-value">${bulkTargets.size}명</span></div>
+      <div class="mrow"><span class="mrow-label">총 송금액</span><span class="mrow-value" style="color:var(--orange);font-size:18px;font-weight:900;">${fmt(tot)}점</span></div>
+      <div class="mrow"><span class="mrow-label">송금 후 예금</span><span class="mrow-value">${fmt(d-tot)}점</span></div>
+      ${note?`<div class="mrow"><span class="mrow-label">메모</span><span class="mrow-value" style="color:var(--accent2);">${note}</span></div>`:''}
+      <div class="modal-btns">
+        <button class="mbtn-cancel" onclick="closeModal()">취소</button>
+        <button class="mbtn-confirm" onclick="confirmTransfer()">일괄 송금하기</button>
+      </div>`);
+  } else {
+    if(!transferTarget)return showToast('받는 사람을 선택하세요','error');
+    if(transferAmount<=0)return showToast('금액을 입력하세요','error');
+    if(transferAmount>Math.floor(d))return showToast('예금이 부족합니다','error');
+    showModal(`
+      <div class="modal-handle"></div>
+      <div class="modal-title">송금 확인</div>
+      <div class="modal-sub">아래 내용을 확인해주세요</div>
+      <div class="mrow"><span class="mrow-label">보내는 사람</span><span class="mrow-value">${currentUser}</span></div>
+      <div class="mrow"><span class="mrow-label">받는 사람</span><span class="mrow-value">${transferTarget} (${gname(transferTarget)})</span></div>
+      <div class="mrow"><span class="mrow-label">금액</span><span class="mrow-value accent">${fmt(transferAmount)}점</span></div>
+      <div class="mrow"><span class="mrow-label">송금 후 예금</span><span class="mrow-value">${fmt(d-transferAmount)}점</span></div>
+      ${note?`<div class="mrow"><span class="mrow-label">메모</span><span class="mrow-value" style="color:var(--accent2);">${note}</span></div>`:''}
+      <div class="modal-btns">
+        <button class="mbtn-cancel" onclick="closeModal()">취소</button>
+        <button class="mbtn-confirm" onclick="confirmTransfer()">송금하기</button>
+      </div>`);
+  }
 };
 // deposit Firebase 경로
 function depPath(name){ return `state/students/${name}/deposit`; }
@@ -1181,36 +1270,59 @@ function depRef(name){ return ref(db, depPath(name)); }
 
 window.confirmTransfer=async function(){
   closeModal();
+  const note=transferNote.trim();
   try{
-    // 보내는 사람 예금 확인 및 차감
-    let ok=false;
-    await runTransaction(depRef(currentUser),cur=>{
-      const d=cur??0;
-      if(d<transferAmount)return; // abort
-      ok=true;
-      return Math.round((d-transferAmount)*100)/100;
-    });
-    if(!ok)return showToast('예금이 부족합니다','error');
-
-    // 받는 사람 deposit 현재값 조회
-    const ts=Date.now();
-    const toSnap=await get(depRef(transferTarget));
-    const toDep=toSnap.val()??0;
-    const toDeposit=Math.round((toDep+transferAmount)*100)/100;
-
-    const fromHist=[...(fbState?.bankHistory?.[currentUser]??[]),
-      {type:'send',to:transferTarget,amount:transferAmount,ts}];
-    const toHist=[...(fbState?.bankHistory?.[transferTarget]??[]),
-      {type:'recv',from:currentUser,amount:transferAmount,ts}];
-
-    await update(ref(db),{
-      [depPath(transferTarget)]: toDeposit,
-      [`state/bankHistory/${currentUser}`]: fromHist,
-      [`state/bankHistory/${transferTarget}`]: toHist,
-    });
-
-    showToast(`✅ ${transferTarget}에게 ${fmt(transferAmount)}점 송금 완료!`,'success');
-    transferTarget=null;transferAmount=0;switchTab('home');
+    if(bulkMode){
+      // ── 일괄 송금 ──
+      const targets=[...bulkTargets];
+      const tot=targets.length*transferAmount;
+      let ok=false;
+      await runTransaction(depRef(currentUser),cur=>{
+        if((cur??0)<tot)return;
+        ok=true;
+        return Math.round(((cur??0)-tot)*100)/100;
+      });
+      if(!ok)return showToast('예금이 부족합니다','error');
+      const ts=Date.now();
+      const updates={};
+      const fromHist=[...(fbState?.bankHistory?.[currentUser]??[]),
+        {type:'send-bulk',targets,amount:transferAmount,total:tot,note:note||null,ts}];
+      updates[`state/bankHistory/${currentUser}`]=fromHist;
+      for(const name of targets){
+        const snap=await get(depRef(name));
+        updates[depPath(name)]=Math.round(((snap.val()??0)+transferAmount)*100)/100;
+        const toHist=[...(fbState?.bankHistory?.[name]??[]),
+          {type:'recv',from:currentUser,amount:transferAmount,note:note||null,ts}];
+        updates[`state/bankHistory/${name}`]=toHist;
+      }
+      await update(ref(db),updates);
+      showToast(`✅ ${targets.length}명에게 ${fmt(transferAmount)}점씩 송금 완료!`,'success');
+      bulkTargets=new Set();bulkMode=false;transferAmount=0;transferNote='';
+    } else {
+      // ── 단건 송금 ──
+      let ok=false;
+      await runTransaction(depRef(currentUser),cur=>{
+        if((cur??0)<transferAmount)return;
+        ok=true;
+        return Math.round(((cur??0)-transferAmount)*100)/100;
+      });
+      if(!ok)return showToast('예금이 부족합니다','error');
+      const ts=Date.now();
+      const toSnap=await get(depRef(transferTarget));
+      const toDeposit=Math.round(((toSnap.val()??0)+transferAmount)*100)/100;
+      const fromHist=[...(fbState?.bankHistory?.[currentUser]??[]),
+        {type:'send',to:transferTarget,amount:transferAmount,note:note||null,ts}];
+      const toHist=[...(fbState?.bankHistory?.[transferTarget]??[]),
+        {type:'recv',from:currentUser,amount:transferAmount,note:note||null,ts}];
+      await update(ref(db),{
+        [depPath(transferTarget)]:toDeposit,
+        [`state/bankHistory/${currentUser}`]:fromHist,
+        [`state/bankHistory/${transferTarget}`]:toHist,
+      });
+      showToast(`✅ ${transferTarget}에게 ${fmt(transferAmount)}점 송금 완료!`,'success');
+      transferTarget=null;transferAmount=0;transferNote='';
+    }
+    switchTab('home');
   }catch(e){showToast('오류가 발생했습니다','error');}
 };
 

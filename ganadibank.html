@@ -615,8 +615,10 @@ function renderHome(){
   const txHtml = sorted.length===0
     ? `<div class="empty-tx">📭 아직 거래 내역이 없어요</div>`
     : sorted.map(h=>{
-        if(h.type==='send')         return txRow('send','↑',`${h.to}에게 송금`,h.ts,`-${fmt(h.amount)}점`);
-        if(h.type==='recv')         return txRow('recv','↓',`${h.from}에게서 받음`,h.ts,`+${fmt(h.amount)}점`);
+        const note = h.note ? ` · ${h.note}` : '';
+        if(h.type==='send')         return txRow('send','↑',`${h.to}에게 송금${note}`,h.ts,`-${fmt(h.amount)}점`);
+        if(h.type==='send-bulk')    return txRow('send','↑↑',`${h.targets?.length||'?'}명에게 일괄 송금${note}`,h.ts,`-${fmt(h.total||h.amount)}점`);
+        if(h.type==='recv')         return txRow('recv','↓',`${h.from}에게서 받음${note}`,h.ts,`+${fmt(h.amount)}점`);
         if(h.type==='interest')     return txRow('interest','💰',`예금 이자 (+${h.weeks}주)`,h.ts,`+${fmt(h.amount)}점`);
         if(h.type==='loan-receive') return txRow('loan-out','🏛',`대출 실행 (${h.weeks}주)`,h.ts,`+${fmt(h.amount)}점`);
         if(h.type==='loan-payment') return txRow('loan-pay','📤',`대출 상환 ${h.weekNo}회차`,h.ts,`-${fmt(h.amount)}점`);

@@ -399,14 +399,68 @@ function stockAsset(name){
   const stu=fbState?.students?.[name];
   if(!stu)return 0;
   let sv=0;
-  for(const[t,q]of Object.entries(stu.holdings??{})){if(q&&q>0)sv+=q*(fbState?.prices?.[t]??0);}
+  
+  // 롱 포지션 (보유 주식)
+  for(const[t,q]of Object.entries(stu.holdings??{})){
+    if(q&&q>0){
+      let price = fbState?.prices?.[t];
+      if(!price) {
+        const stockInfo = STOCK_DATA?.find(x=>x.ticker===t);
+        price = stockInfo?.price ?? 0;
+      }
+      sv+=q*price;
+    }
+  }
+  
+  // 공매도 포지션 (손익으로 계산: 평균공매도가격 - 현재가격)
+  const shorts = fbState?.shortPositions?.[name]??{};
+  for(const[t,p]of Object.entries(shorts)){
+    if(p?.qty&&p.qty>0){
+      let price = fbState?.prices?.[t];
+      if(!price) {
+        const stockInfo = STOCK_DATA?.find(x=>x.ticker===t);
+        price = stockInfo?.price ?? 0;
+      }
+      // 공매도 손익: (평균공매도가격 - 현재가격) × 수량
+      const shortPnL = (p.avgShortPrice - price) * p.qty;
+      sv += shortPnL;
+    }
+  }
+  
   return sv;
 }
 function totalAsset(name){
   const stu=fbState?.students?.[name];
   if(!stu)return 0;
   let sv=0;
-  for(const[t,q]of Object.entries(stu.holdings??{})){if(q&&q>0)sv+=q*(fbState?.prices?.[t]??0);}
+  
+  // 롱 포지션 (보유 주식)
+  for(const[t,q]of Object.entries(stu.holdings??{})){
+    if(q&&q>0){
+      let price = fbState?.prices?.[t];
+      if(!price) {
+        const stockInfo = STOCK_DATA?.find(x=>x.ticker===t);
+        price = stockInfo?.price ?? 0;
+      }
+      sv+=q*price;
+    }
+  }
+  
+  // 공매도 포지션 (손익으로 계산: 평균공매도가격 - 현재가격)
+  const shorts = fbState?.shortPositions?.[name]??{};
+  for(const[t,p]of Object.entries(shorts)){
+    if(p?.qty&&p.qty>0){
+      let price = fbState?.prices?.[t];
+      if(!price) {
+        const stockInfo = STOCK_DATA?.find(x=>x.ticker===t);
+        price = stockInfo?.price ?? 0;
+      }
+      // 공매도 손익: (평균공매도가격 - 현재가격) × 수량
+      const shortPnL = (p.avgShortPrice - price) * p.qty;
+      sv += shortPnL;
+    }
+  }
+  
   return (stu.deposit??0)+sv+(stu.couponBalance??0);
 }
 function fmtDate(ts){
@@ -668,23 +722,60 @@ function renderHome(){
   const stockRows = Object.entries(holdings)
     .filter(([t,q])=>q>0)
     .map(([t,q])=>{
-      const price = fbState?.prices?.[t]??0;
-      return {ticker:t, qty:q, price, val:q*price};
-    }).sort((a,b)=>b.val-a.val);
+      let price = fbState?.prices?.[t];
+      if(!price) {
+        const stockInfo = STOCK_DATA?.find(x=>x.ticker===t);
+        price = stockInfo?.price ?? 0;
+      }
+      return {ticker:t, qty:q, price, val:q*price, type:'long'};
+    });
 
-  const stockDetail = stockRows.length===0
+  // 공매도 포지션 추가
+  const shorts = fbState?.shortPositions?.[currentUser]??{};
+  const shortRows = Object.entries(shorts)
+    .filter(([t,p])=>p?.qty&&p.qty>0)
+    .map(([t,p])=>{
+      let price = fbState?.prices?.[t];
+      if(!price) {
+        const stockInfo = STOCK_DATA?.find(x=>x.ticker===t);
+        price = stockInfo?.price ?? 0;
+      }
+      // 공매도 손익: (평균공매도가격 - 현재가격) × 수량
+      const pnl = (p.avgShortPrice - price) * p.qty;
+      return {ticker:t, qty:p.qty, price, avgShortPrice:p.avgShortPrice, val:pnl, type:'short'};
+    });
+
+  const allStockRows = [...stockRows, ...shortRows].sort((a,b)=>Math.abs(b.val)-Math.abs(a.val));
+
+  const stockDetail = allStockRows.length===0
     ? `<div class="empty-tx" style="padding:20px 0;">보유 주식이 없어요</div>`
-    : `<div class="stock-list">${stockRows.map(s=>`
-        <div class="stock-item">
-          <div class="stock-ticker">${s.ticker}</div>
-          <div class="stock-info">
-            <div class="stock-name">${s.ticker}</div>
-            <div class="stock-qty">${fmt(s.qty)}주 · 주당 ${fmt(s.price)}점</div>
-          </div>
-          <div class="stock-val">
-            <div class="stock-price">${fmt(s.val)}점</div>
-          </div>
-        </div>`).join('')}</div>`;
+    : `<div class="stock-list">${allStockRows.map(s=>{
+        if(s.type==='short'){
+          const pnl = (s.avgShortPrice - s.price) * s.qty;
+          return `<div class="stock-item" style="opacity:0.85;border-color:rgba(255,91,110,0.3);">
+            <div class="stock-ticker" style="color:var(--red);">📉${s.ticker}</div>
+            <div class="stock-info">
+              <div class="stock-name">${s.ticker} <span style="font-size:11px;color:var(--red);font-weight:700;">SHORT</span></div>
+              <div class="stock-qty">${fmt(s.qty)}주 공매도 @ ${fmt(s.avgShortPrice)}점</div>
+            </div>
+            <div class="stock-val">
+              <div class="stock-price" style="color:var(--red);">${fmt(s.val)}점</div>
+              <div class="stock-change" style="color:${pnl>=0?'var(--green)':'var(--red)'};font-weight:600;">${pnl>=0?'+':''} ${fmt(pnl)}점</div>
+            </div>
+          </div>`;
+        }else{
+          return `<div class="stock-item">
+            <div class="stock-ticker">${s.ticker}</div>
+            <div class="stock-info">
+              <div class="stock-name">${s.ticker}</div>
+              <div class="stock-qty">${fmt(s.qty)}주 · 주당 ${fmt(s.price)}점</div>
+            </div>
+            <div class="stock-val">
+              <div class="stock-price">${fmt(s.val)}점</div>
+            </div>
+          </div>`;
+        }
+      }).join('')}</div>`;
 
   document.getElementById('main-content').innerHTML=`
     <!-- 계좌 슬라이더 -->

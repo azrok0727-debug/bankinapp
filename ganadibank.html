@@ -417,6 +417,7 @@ function fmtDateFull(ts){
 // ── 예금 이자 자동 지급 ───────────────────────────────────
 async function checkInterest(){
   if(!currentUser||!fbState)return;
+  if(isTeacher())return; // 선생님 계정은 이자 없음
   const now=Date.now();
   const iData=fbState?.bankInterest?.[currentUser];
   // lastApplied가 없으면 지금 시각으로 초기화 (첫 로그인 시 이자 폭발 방지)
@@ -497,8 +498,9 @@ function renderLogin(){
         style="margin-bottom:16px;" onkeydown="if(event.key==='Enter')document.getElementById('lb').click()" />
       <button class="login-btn" id="lb">🏦 입장하기</button>
       <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:10px;">초기 비밀번호: <b>1234</b></div>
-      <div style="text-align:center;margin-top:8px;">
+      <div style="text-align:center;margin-top:8px;display:flex;justify-content:center;gap:16px;">
         <button onclick="showChangePw()" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--text2);font-family:var(--font);text-decoration:underline;padding:4px;">비밀번호 변경</button>
+        <button onclick="resetTeacherDeposit()" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--red);font-family:var(--font);text-decoration:underline;padding:4px;">🛠 선생님 잔액 복구</button>
       </div>
     </div></div>`;
   document.getElementById('lb').onclick=doLogin;
@@ -555,6 +557,24 @@ function renderChangePw(){
 }
 
 window.showChangePw=function(){ loginView='changepw'; renderChangePw(); };
+
+window.resetTeacherDeposit = async function(){
+  const amount = prompt('김민재 선생님의 올바른 예금 잔액을 입력하세요 (현재 Firebase 콘솔에서 확인한 값):');
+  if(amount===null) return;
+  const val = parseFloat(amount);
+  if(isNaN(val)||val<0) return showToast('올바른 숫자를 입력해주세요','error');
+  if(!confirm(`선생님 예금을 ${val}점으로 설정하고, 이자 타이머를 지금으로 초기화할까요?`)) return;
+  await update(ref(db,'state/students/김민재 선생님'),{deposit:val});
+  await update(ref(db,'state/bankInterest/김민재 선생님'),{lastApplied:Date.now(),totalEarned:0});
+  // bankHistory에서 interest 항목 제거
+  const histSnap = await get(ref(db,'state/bankHistory/김민재 선생님'));
+  const hist = histSnap.val();
+  if(hist){
+    const cleaned = (Array.isArray(hist)?hist:Object.values(hist)).filter(h=>h&&h.type!=='interest');
+    await runTransaction(ref(db,'state/bankHistory/김민재 선생님'),()=>cleaned);
+  }
+  showToast('선생님 잔액 복구 완료!','success');
+};
 window.hideChangePw=function(){ loginView='login'; renderLogin(); };
 
 window.doChangePw=async function(){
@@ -623,10 +643,12 @@ function renderHome(){
         if(h.type==='loan-receive') return txRow('loan-out','🏛',`대출 실행 (${h.weeks}주)`,h.ts,`+${fmt(h.amount)}점`);
         if(h.type==='loan-payment') return txRow('loan-pay','📤',`대출 상환 ${h.weekNo}회차`,h.ts,`-${fmt(h.amount)}점`);
         if(h.type==='loan-complete')return txRow('recv','✅','대출 완납 🎉',h.ts,'');
+        if(h.type==='salary')       return txRow('recv','💵',`주급 지급${h.role&&h.role!=='기본'?` (${h.role})`:''}`,h.ts,`+${fmt(h.amount)}점`);
         if(h.type==='tax')          return txRow('send','🏛','세금 납부',h.ts,`-${fmt(h.amount)}점`);
         if(h.type==='tax-income')   return txRow('recv','💰',`세금 수입 (${h.from}명)`,h.ts,`+${fmt(h.amount)}점`);
         if(h.type==='coupon-grant') return txRow('recv','🎟','쿠폰 구매 지원금 지급',h.ts,`+${fmt(h.amount)}점`);
         if(h.type==='coupon-use')   return txRow('send','🎟','쿠폰 구매 사용',h.ts,`-${fmt(h.amount)}점`);
+        if(h.type==='salary')       return txRow('recv','💵',`주급 지급 (${h.role||'기본'})`,h.ts,`+${fmt(h.amount)}점`);
         return '';
       }).join('');
 

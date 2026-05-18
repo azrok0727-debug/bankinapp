@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>가나디뱅크</title>
+<title>가나디뱅크 v3.2</title>
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -378,7 +378,11 @@ let loanAmt=0, loanWeeks=1, loanType='equal', loanSubTab='apply';
 // ── Firebase ─────────────────────────────────────────────
 onValue(ref(db,'state'), snap=>{
   fbState=snap.val()||{};
-  if(currentUser){ checkInterest(); checkLoanDue(); renderCurrentTab(); }
+  if(currentUser){
+    if(!isTeacher()) checkInterest(); // 선생님은 이자 완전 제외
+    checkLoanDue();
+    renderCurrentTab();
+  }
 });
 
 // ── 유틸 ─────────────────────────────────────────────────
@@ -487,6 +491,7 @@ function renderLogin(){
       <div class="login-bank-logo">🏦</div>
       <div class="login-title">가나디<span style="color:var(--accent);">뱅크</span></div>
       <div class="login-subtitle">이름을 선택하고 입장하세요</div>
+      <div style="font-size:10px;color:var(--text3);text-align:center;margin-top:-10px;">v3.2</div>
       <label class="login-label">계좌 선택</label>
       <select class="login-select" id="ls">
         <option value="">— 이름 선택 —</option>
@@ -498,9 +503,8 @@ function renderLogin(){
         style="margin-bottom:16px;" onkeydown="if(event.key==='Enter')document.getElementById('lb').click()" />
       <button class="login-btn" id="lb">🏦 입장하기</button>
       <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:10px;">초기 비밀번호: <b>1234</b></div>
-      <div style="text-align:center;margin-top:8px;display:flex;justify-content:center;gap:16px;">
+      <div style="text-align:center;margin-top:8px;">
         <button onclick="showChangePw()" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--text2);font-family:var(--font);text-decoration:underline;padding:4px;">비밀번호 변경</button>
-        <button onclick="resetTeacherDeposit()" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--red);font-family:var(--font);text-decoration:underline;padding:4px;">🛠 선생님 잔액 복구</button>
       </div>
     </div></div>`;
   document.getElementById('lb').onclick=doLogin;

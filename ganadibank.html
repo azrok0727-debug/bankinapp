@@ -701,12 +701,12 @@ function renderHome(){
         if(h.type==='loan-receive') return txRow('loan-out','🏛',`대출 실행 (${h.weeks}주)`,h.ts,`+${fmt(h.amount)}점`);
         if(h.type==='loan-payment') return txRow('loan-pay','📤',`대출 상환 ${h.weekNo}회차`,h.ts,`-${fmt(h.amount)}점`);
         if(h.type==='loan-complete')return txRow('recv','✅','대출 완납 🎉',h.ts,'');
-        if(h.type==='salary')       return txRow('recv','💵',`주급 지급${h.role&&h.role!=='기본'?` (${h.role})`:''}`,h.ts,`+${fmt(h.amount)}점`);
+        if(h.type==='salary')       return txRow('recv','💵',`주급 지급${h.role&&h.role!=='기본'?` (${h.role})`:''}`,h.ts,`+${fmt(h.total||h.amount)}점`);
+        if(h.type==='salary-out')   return txRow('send','💵',`주급 지급 (${h.paidTo}명)`,h.ts,`-${fmt(h.total||h.amount)}점`);
         if(h.type==='tax')          return txRow('send','🏛','세금 납부',h.ts,`-${fmt(h.total||h.amount)}점`);
         if(h.type==='tax-income')   return txRow('recv','💰',`세금 수입${h.collectedFrom?` (${h.collectedFrom}명)`:h.from?` (${h.from})`:''} `,h.ts,`+${fmt(h.total||h.amount)}점`);
         if(h.type==='coupon-grant') return txRow('recv','🎟','쿠폰 구매 지원금 지급',h.ts,`+${fmt(h.amount)}점`);
         if(h.type==='coupon-use')   return txRow('send','🎟','쿠폰 구매 사용',h.ts,`-${fmt(h.amount)}점`);
-        if(h.type==='salary')       return txRow('recv','💵',`주급 지급 (${h.role||'기본'})`,h.ts,`+${fmt(h.amount)}점`);
         return '';
       }).join('');
 
